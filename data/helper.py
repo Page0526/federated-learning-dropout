@@ -10,10 +10,10 @@ LABEL_PATH = "dataset/label.csv"
 
 
 # processing if using subset of labels 
-def preprocessing_labels(root_path: str, df: pd.DataFrame):
+def preprocessing_labels(df: pd.DataFrame):
     
     subject_list = []
-    for root, dirs, files in os.walk(root_path):
+    for root, dirs, files in os.walk(ROOT_PATH):
       for dir_name in dirs:
         if dir_name.startswith("sub-BrainAge"):
             subject_list.append(dir_name)
@@ -25,11 +25,7 @@ def preprocessing_labels(root_path: str, df: pd.DataFrame):
 def prepare_data(data: pd.DataFrame):
 
   df = data.copy()
-  required_cols = ['subject_age', 'subject_sex']
-
   df['age_group'] = pd.qcut(df['subject_age'], q = min(5, len(df)), labels = False)
-  stratify_cols = ['age_group', 'subject_sex']
-
   df['key'] = df.apply(lambda row : f"{row['age_group']}_{row['subject_sex']}", axis = 1)
   return df
 

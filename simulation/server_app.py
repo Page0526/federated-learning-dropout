@@ -7,11 +7,12 @@ from typing import Dict, List, Optional
 import os
 from simulation.strategy import DropoutFedAvg
 from flwr.common import Context
+import torch 
 
 
 
 def run_dropout_experiment(
-    client_fn,
+    client_fn_creator,
     num_clients: int,
     num_rounds: int = 5,
     dropout_rate: float = 0.3,
@@ -21,21 +22,7 @@ def run_dropout_experiment(
     save_results: bool = True,
     resource_config : Optional[Dict[str, float]] = None,
 ):
-    """Run a federated learning experiment with client dropout.
-
-    Args:
-        client_fn: Function to create client applications
-        num_clients: Number of clients to simulate
-        num_rounds: Number of federated learning rounds
-        dropout_rate: Probability of clients dropping out (0.0-1.0)
-        dropout_pattern: Pattern for client dropout ("random", "alternate", "fixed")
-        fixed_clients: List of client IDs that will never drop out
-        experiment_name: Name for saving experiment results
-        save_results: Whether to save results to disk
-
-    Returns:
-        Tuple containing results dict and history dict
-    """
+    
       # Configure client app
     print(f"\nStarting experiment: {experiment_name}")
     print(f"Dropout rate: {dropout_rate}, Pattern: {dropout_pattern}")
@@ -59,6 +46,12 @@ def run_dropout_experiment(
         config = ServerConfig(num_rounds=num_rounds)
         return ServerAppComponents(strategy=strategy, config=config)
 
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    epochs = resource_config.get("epochs", 1) if resource_config else 1
+    client_datasets = resource_config.get("client_datasets", {}) if resource_config else {}
+    client_fn = client_fn_creator(device=device, epochs=epochs, client_datasets=client_datasets)
+    
     # Create client and server apps
     client_app = ClientApp(client_fn=client_fn)
     server_app = ServerApp(server_fn=server_fn)
@@ -67,7 +60,7 @@ def run_dropout_experiment(
     backend_config = {
         "client_resources": {
             "num_cpus": 1,
-            "num_gpus": 0.0
+            "num_gpus": 1.0
         }
     }
     history = strategy.get_dropout_history()
@@ -78,7 +71,6 @@ def run_dropout_experiment(
             server_app=server_app,
             num_supernodes=num_clients,
             backend_config=backend_config,
-            resources = resource_config,
         )
 
         # Get metrics directly from strategy
@@ -99,52 +91,53 @@ def run_dropout_experiment(
         }
 
         # Visualize results
-        plt.figure(figsize=(15, 7))
+        # plt.figure(figsize=(15, 7))
 
-        # Plot accuracy
-        plt.subplot(1, 2, 1)
-        plt.plot(rounds, accuracy_values, 'o-', label=f'{dropout_pattern} dropout')
-        plt.title(f'Accuracy with {dropout_rate*100:.0f}% Dropout')
-        plt.xlabel('Round')
-        plt.ylabel('Accuracy')
-        plt.grid(True)
-        plt.ylim(0, 1)
+        # # Plot accuracy
+        # plt.subplot(1, 2, 1)
+        # plt.plot(rounds, accuracy_values, 'o-', label=f'{dropout_pattern} dropout')
+        # plt.title(f'Accuracy with {dropout_rate*100:.0f}% Dropout')
+        # plt.xlabel('Round')
+        # plt.ylabel('Accuracy')
+        # plt.grid(True)
+        # plt.ylim(0, 1)
 
-        # Plot loss
-        plt.subplot(1, 2, 2)
-        plt.plot(rounds, loss_values, 'o-', color='orange', label=f'{dropout_pattern} dropout')
-        plt.title(f'Loss with {dropout_rate*100:.0f}% Dropout')
-        plt.xlabel('Round')
-        plt.ylabel('Loss')
-        plt.grid(True)
+        # # Plot loss
+        # plt.subplot(1, 2, 2)
+        # plt.plot(rounds, loss_values, 'o-', color='orange', label=f'{dropout_pattern} dropout')
+        # plt.title(f'Loss with {dropout_rate*100:.0f}% Dropout')
+        # plt.xlabel('Round')
+        # plt.ylabel('Loss')
+        # plt.grid(True)
 
-        plt.tight_layout()
+        # plt.tight_layout()
 
-        if save_results:
-            # Create results directory
-            os.makedirs("results", exist_ok=True)
+        # if save_results:
+        #     # Create results directory
+        #     os.makedirs("results", exist_ok=True)
 
-            # Save figure
-            plt.savefig(f"results/{experiment_name}.png")
+        #     # Save figure
+        #     plt.savefig(f"results/{experiment_name}.png")
 
-            # Save metrics to CSV
-            metrics_df = pd.DataFrame({
-                "round": rounds,
-                "accuracy": accuracy_values,
-                "loss": loss_values
-            })
-            metrics_df.to_csv(f"results/{experiment_name}_metrics.csv", index=False)
+        #     # Save metrics to CSV
+        #     metrics_df = pd.DataFrame({
+        #         "round": rounds,
+        #         "accuracy": accuracy_values,
+        #         "loss": loss_values
+        #     })
+        #     metrics_df.to_csv(f"results/{experiment_name}_metrics.csv", index=False)
 
-            # Save dropout history
-            dropout_df = pd.DataFrame([
-                {"round": round_num, "dropped_clients": ",".join(map(str, clients))}
-                for round_num, clients in dropout_history.items()
-            ])
-            dropout_df.to_csv(f"results/{experiment_name}_dropout.csv", index=False)
+        #     # Save dropout history
+        #     dropout_df = pd.DataFrame([
+        #         {"round": round_num, "dropped_clients": ",".join(map(str, clients))}
+        #         for round_num, clients in dropout_history.items()
+        #     ])
+        #     dropout_df.to_csv(f"results/{experiment_name}_dropout.csv", index=False)
 
-        plt.show()
+        # plt.show()
 
         return results, history
+    
     except Exception as e:
         print(f"Error in dropout experiment: {e}")
         import traceback
