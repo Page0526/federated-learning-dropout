@@ -24,7 +24,6 @@ class MRIDataset(Dataset) :
         self.file_paths = [fp for fp in all_nii_files if fp.is_file()]
 
         valid_subjects = set(self.labels_df['subject_id'].values)
-        original_count = len(self.file_paths)
 
         self.file_paths = [fp for fp in self.file_paths if any(vs in str(fp) for vs in valid_subjects)]
         self.file_paths.sort()
