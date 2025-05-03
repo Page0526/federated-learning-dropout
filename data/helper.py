@@ -3,6 +3,8 @@ from torch.utils.data import random_split
 from data.dataset import MRIDataset
 import torch
 import os 
+import hydra 
+
 
 ROOT_PATH = "dataset/not_skull_stripped"
 LABEL_PATH = "dataset/label.csv"
@@ -10,10 +12,10 @@ LABEL_PATH = "dataset/label.csv"
 
 
 # processing if using subset of labels 
-def preprocessing_labels(df: pd.DataFrame):
+def preprocessing_labels(df: pd.DataFrame, root_dir: str = ROOT_PATH):
     
     subject_list = []
-    for root, dirs, files in os.walk(ROOT_PATH):
+    for root, dirs, files in os.walk(root_dir):
       for dir_name in dirs:
         if dir_name.startswith("sub-BrainAge"):
             subject_list.append(dir_name)
@@ -56,11 +58,11 @@ def sampling_data(data, size, random_state ):
   return samples
 
 
-def create_train_test(sample_labels: list, val_ratio: float = 0.2):
+def create_train_test(sample_labels: list, val_ratio: float = 0.2, root_dir: str = ROOT_PATH):
 
   client_datasets = []
   for label_df in sample_labels:
-    dataset = MRIDataset(root_dir=ROOT_PATH, label_path=LABEL_PATH, label_df = label_df)
+    dataset = MRIDataset(root_dir=root_dir, label_df = label_df)
     
     train_dataset, val_dataset = random_split(dataset, [1 - val_ratio, val_ratio])
     client_datasets.append((train_dataset, val_dataset))

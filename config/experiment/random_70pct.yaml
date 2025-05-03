@@ -1,0 +1,4 @@
+pattern: "random"
+dropout_rate: 0.7
+fixed_clients: []
+name: "random_dropout_70pct"

@@ -7,7 +7,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from model.model import BrainMRINet
 import torch.nn as nn 
+import logging 
 
+logger = logging.getLogger(__name__)
 
 class FlowerClient(NumPyClient):
     def __init__(self, model, train_dataloader, val_dataloader, optimizer, criterion, epochs,  device):
@@ -54,7 +56,7 @@ class FlowerClient(NumPyClient):
 
 
 
-def create_client_fn(device, epochs, client_datasets):
+def create_client_fn(device, epochs, client_datasets, batch_size, learning_rate, num_workers):
 
     def client_fn(context: Context):
 
@@ -63,13 +65,15 @@ def create_client_fn(device, epochs, client_datasets):
 
         train_dataset, val_dataset = client_datasets[client_id]
 
-        train_dataloader = DataLoader(train_dataset, batch_size = 4, shuffle = True, num_workers = 2)
-        val_dataloader = DataLoader(val_dataset, batch_size = 4, shuffle = False, num_workers = 2)
+        print(f"Client {client_id} - Training samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}")
+
+        train_dataloader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True, num_workers = num_workers)
+        val_dataloader = DataLoader(val_dataset, batch_size = batch_size, shuffle = False, num_workers = num_workers)
 
         model = BrainMRINet(num_classes = 2)
         model.to(device)
 
-        optimizer = optim.Adam(model.parameters(), lr = 0.001)
+        optimizer = optim.Adam(model.parameters(), lr = learning_rate)
         criterion = nn.CrossEntropyLoss()
         return FlowerClient(model, train_dataloader, val_dataloader, optimizer, criterion, epochs, device).to_client()
 

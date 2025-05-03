@@ -30,16 +30,23 @@ def iid_client_split(dataset, num_client = 3,  val_ratio = 0.2):
 
 
 
-def same_distribution_client_split(dataset, num_client, val_ratio = 0.2, overlap_ratio = 0.2):
+def same_distribution_client_split(dataset, num_client, val_ratio = 0.2, overlap_ratio = 0.2, root_dir = ROOT_PATH):
     """
     Split the dataset into clients with the same distribution of labels.
     """
     labels_df = dataset.labels_df
-    labels_df = preprocessing_labels(labels_df)
+    labels_df = preprocessing_labels(labels_df, root_dir = root_dir)    
     labels_df = prepare_data(labels_df)
 
     client_datasets = distributed_data_to_clients(labels_df, num_clients=num_client, overlap_ratio=overlap_ratio)
 
-    client_datasets = create_train_test(client_datasets, val_ratio=val_ratio)
+    client_datasets = create_train_test(client_datasets, val_ratio=val_ratio, root_dir=root_dir)
 
     return client_datasets
+
+
+if __name__ == "__main__":
+
+    dataset = MRIDataset(root_dir=ROOT_PATH, label_path=LABEL_PATH)
+    client_datasets = iid_client_split(dataset, num_client=3, val_ratio=0.2)
+    print(client_datasets)

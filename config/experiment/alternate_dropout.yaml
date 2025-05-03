@@ -1,0 +1,4 @@
+pattern: "alternate"
+dropout_rate: 0.5  # Not actually used with alternate pattern
+fixed_clients: []
+name: "alternate_dropout"

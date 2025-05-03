@@ -16,13 +16,7 @@ from flwr.server.strategy import FedAvg
 class DropoutFedAvg(FedAvg):
     """FedAvg strategy with client dropout simulation and metrics tracking."""
 
-    def __init__(
-        self,
-        dropout_rate: float = 0.3,
-        fixed_clients: Optional[List[int]] = None,
-        dropout_pattern: str = "random",
-        **kwargs
-    ):
+    def __init__( self, dropout_rate: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern: str = "random", **kwargs):
         # Define metrics aggregation functions if not provided
         if "fit_metrics_aggregation_fn" not in kwargs:
             kwargs["fit_metrics_aggregation_fn"] = self.weighted_average
@@ -60,9 +54,7 @@ class DropoutFedAvg(FedAvg):
 
         return weighted_metrics
 
-    def configure_fit(
-        self, server_round: int, parameters: Parameters, client_manager: ClientManager
-    ) -> List[Tuple[ClientProxy, FitIns]]:
+    def configure_fit( self, server_round: int, parameters: Parameters, client_manager: ClientManager) -> List[Tuple[ClientProxy, FitIns]]:
         """Configure the next round of training with client dropout."""
         self.current_round = server_round
 
@@ -88,9 +80,7 @@ class DropoutFedAvg(FedAvg):
 
         return available_clients
 
-    def _apply_dropout(
-        self, client_instructions: List[Tuple[ClientProxy, FitIns]]
-    ) -> List[Tuple[ClientProxy, FitIns]]:
+    def _apply_dropout( self, client_instructions: List[Tuple[ClientProxy, FitIns]]) -> List[Tuple[ClientProxy, FitIns]]:
         """Apply dropout to clients based on the specified pattern."""
         if len(client_instructions) == 0:
             return []
@@ -105,16 +95,16 @@ class DropoutFedAvg(FedAvg):
         if self.dropout_pattern == "random":
             # Random dropout based on dropout_rate
             for i, cid in enumerate(all_client_ids):
-                # Skip fixed clients
+                
                 if cid in self.fixed_clients:
                     continue
-                # Apply dropout with probability dropout_rate
+            
                 if random.random() < self.dropout_rate:
                     dropout_mask[i] = True
 
         elif self.dropout_pattern == "alternate":
             # Dropout every other round
-            if self.current_round % 2 == 1:  # Dropout on odd rounds
+            if self.current_round % 2 == 1:  
                 for i, cid in enumerate(all_client_ids):
                     if cid not in self.fixed_clients:
                         dropout_mask[i] = True
@@ -126,7 +116,7 @@ class DropoutFedAvg(FedAvg):
                 if all_client_ids[i] not in self.fixed_clients:
                     dropout_mask[i] = True
 
-        # Filter out dropped clients
+        
         available_clients = [
             (client, ins) for i, (client, ins) in enumerate(all_clients)
             if not dropout_mask[i]
@@ -134,12 +124,7 @@ class DropoutFedAvg(FedAvg):
 
         return available_clients
 
-    def aggregate_fit(
-        self,
-        server_round: int,
-        results: List[Tuple[ClientProxy, FitRes]],
-        failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
-    ):
+    def aggregate_fit(self, server_round: int, results: List[Tuple[ClientProxy, FitRes]], failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]]):
         """Aggregate fit results and store metrics."""
         aggregated = super().aggregate_fit(server_round, results, failures)
 
@@ -154,12 +139,7 @@ class DropoutFedAvg(FedAvg):
 
         return aggregated
 
-    def aggregate_evaluate(
-        self,
-        server_round: int,
-        results: List[Tuple[ClientProxy, EvaluateRes]],
-        failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]],
-    ):
+    def aggregate_evaluate( self, server_round: int, results: List[Tuple[ClientProxy, EvaluateRes]],  failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]]):
         """Aggregate evaluation results and store metrics."""
         aggregated = super().aggregate_evaluate(server_round, results, failures)
 

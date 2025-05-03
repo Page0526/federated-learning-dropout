@@ -4,96 +4,78 @@ from simulation.client_app import create_client_fn
 from data.data_split import iid_client_split, same_distribution_client_split
 from data.dataset import MRIDataset
 import torch 
+import hydra 
+from omegaconf import DictConfig, OmegaConf
+import logging 
 
 
 
-def conduct_dropout_experiments(client_fn, resource_config, num_clients=3, num_rounds=5):
-    """Run a series of experiments with different dropout configurations."""
 
-    # Experiment 1: Random dropout with 30% rate
-    exp1_results, exp1_history = run_dropout_experiment(
-        client_fn_creator=client_fn,
-        num_clients=num_clients,
-        num_rounds=num_rounds,
-        dropout_rate=0.3,
-        dropout_pattern="random",
-        experiment_name="random_dropout_30pct",
-        resource_config = resource_config
+logger = logging.getLogger(__name__)
+
+
+
+@hydra.main(config_path="config", config_name="main")
+def run_experiment(cfg: DictConfig) -> None:
+
+
+    logger.info(f"Running experiment with config: {cfg.experiment.name}")
+    logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
+
+    device = cfg.device
+    epochs = cfg.train.epochs 
+
+    logger.info("Loading dataset")
+
+    full_dataset = MRIDataset(root_dir=cfg.data.root_path, label_path=cfg.data.label_path)
+
+    logger.info(f"Dataset loaded successfully with len is {len(full_dataset)}")
+    logger.info(f"Splitting dataset into {cfg.num_clients} clients")
+
+    if cfg.data.distribution == "iid":
+        client_datasets = iid_client_split(full_dataset, num_client=cfg.num_clients, val_ratio=cfg.val_ratio)
+
+    elif cfg.data.distribution == "same":
+        client_datasets = same_distribution_client_split(full_dataset, num_client=cfg.num_clients, val_ratio=cfg.data.val_ratio, overlap_ratio=cfg.data.overlap_ratio, root_dir = cfg.data.root_path)
+    
+    else: 
+        raise ValueError(f"Unknown distribution type: {cfg.data.distribution}")
+    
+    logger.info(f"Client datasets created successfully with {len(client_datasets)} clients")
+    logger.info(f"Client datasets: {[len(client_datasets[i][0]) for i in range(len(client_datasets))]}")
+    logger.info(f"Dataset split successfully")
+
+    resources = {
+        "client_datasets": client_datasets,
+        "device": device,
+        "epochs": epochs, 
+        "batch_size": cfg.train.batch_size,
+        "learning_rate": cfg.train.learning_rate,
+        "num_workers": cfg.train.num_workers
+
+    }
+
+
+    logger.info("Running experiments")
+
+    results, history = run_dropout_experiment(
+        client_fn_creator=create_client_fn,
+        num_clients=cfg.num_clients,
+        num_rounds=cfg.num_rounds,
+        dropout_rate=cfg.experiment.dropout_rate,
+        dropout_pattern=cfg.experiment.pattern,
+        experiment_name=cfg.experiment.name,
+        resource_config=resources
     )
 
-    # # Experiment 2: Alternate dropout (every other round)
-    # exp2_results, exp2_history = run_dropout_experiment(
-    #     client_fn=client_fn,
-    #     num_clients=num_clients,
-    #     num_rounds=num_rounds,
-    #     dropout_pattern="alternate",
-    #     experiment_name="alternate_dropout" ,
-    #     resource_config= resouce_config
-    # )
 
-    # # Experiment 3: Fixed dropout (same clients always drop out)
-    # exp3_results, exp3_history = run_dropout_experiment(
-    #     client_fn=client_fn,
-    #     num_clients=num_clients,
-    #     num_rounds=num_rounds,
-    #     dropout_rate=0.3,
-    #     dropout_pattern="fixed",
-    #     experiment_name="fixed_dropout_30pct", 
-    #     resource_config= resouce_config
-    # )
+    logger.info("Experiments completed successfully")
+    logger.info(f"Client Dropout History: {history}")
 
-    # # Experiment 4: High dropout rate (70%)
-    # exp4_results, exp4_history = run_dropout_experiment(
-    #     client_fn=client_fn,
-    #     num_clients=num_clients,
-    #     num_rounds=num_rounds,
-    #     dropout_rate=0.7,
-    #     dropout_pattern="random",
-    #     experiment_name="random_dropout_70pct", 
-    #     resource_config= resouce_config
-    # )
-
-    # # Experiment 5: With fixed clients that never drop out
-    # exp5_results, exp5_history = run_dropout_experiment(
-    #     client_fn=client_fn,
-    #     num_clients=num_clients,
-    #     num_rounds=num_rounds,
-    #     dropout_rate=0.5,
-    #     dropout_pattern="random",
-    #     fixed_clients=[0],  # Client 0 never drops out
-    #     experiment_name="random_dropout_with_fixed", 
-    #     resource_config= resouce_config
-    # )
-
-    return {
-        "random_30pct": (exp1_results, exp1_history)
-        # "alternate": (exp2_results, exp2_history),
-        # "fixed_30pct": (exp3_results, exp3_history),
-        # "random_70pct": (exp4_results, exp4_history),
-        # "random_with_fixed": (exp5_results, exp5_history)
-    }
+    return results, history
 
 
 
 if __name__ == "__main__":
 
-
-    ROOT_PATH = "dataset/not_skull_stripped"
-    LABEL_PATH = "dataset/label.csv"
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    EPOCHS = 1
-
-    full_dataset = MRIDataset(root_dir=ROOT_PATH, label_path=LABEL_PATH)
-    print("Pass initialization")
-
-    client_datasets = same_distribution_client_split(full_dataset, num_client=3, val_ratio=0.2, overlap_ratio=0.2)
-    resources = {"client_datasets": client_datasets, "device": DEVICE, "epochs": EPOCHS}
-    print("Pass dataset creation")
-
-    conduct_dropout_experiments(
-        client_fn=create_client_fn,
-        num_clients=len(client_datasets),
-        num_rounds=1, 
-        resource_config=resources
-    )
-    print("Pass experiment")
+    run_experiment()

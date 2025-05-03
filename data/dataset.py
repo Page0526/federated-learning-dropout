@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 class MRIDataset(Dataset) :
 
-    def __init__(self, root_dir: str, label_path: str, transform = None, label_df: pd.DataFrame = None ):
+    def __init__(self, root_dir: str, label_path: str = None, transform = None, label_df: pd.DataFrame = None ):
         self.root_dir = Path(root_dir)
         self.transform = transform
         if label_df is None:

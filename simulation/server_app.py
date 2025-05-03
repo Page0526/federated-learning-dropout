@@ -50,7 +50,13 @@ def run_dropout_experiment(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     epochs = resource_config.get("epochs", 1) if resource_config else 1
     client_datasets = resource_config.get("client_datasets", {}) if resource_config else {}
-    client_fn = client_fn_creator(device=device, epochs=epochs, client_datasets=client_datasets)
+
+    
+    batch_size = resource_config.get("batch_size", 32) if resource_config else 32
+    learning_rate = resource_config.get("learning_rate", 0.001) if resource_config else 0.001
+    num_workers = resource_config.get("num_workers", 1) if resource_config else 1
+    client_fn = client_fn_creator(device=device, epochs=epochs, client_datasets=client_datasets
+                                , batch_size=batch_size, learning_rate=learning_rate, num_workers=num_workers)
     
     # Create client and server apps
     client_app = ClientApp(client_fn=client_fn)
