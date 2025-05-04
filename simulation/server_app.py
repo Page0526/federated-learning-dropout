@@ -96,52 +96,6 @@ def run_dropout_experiment(
             "dropout_history": dropout_history
         }
 
-        # Visualize results
-        # plt.figure(figsize=(15, 7))
-
-        # # Plot accuracy
-        # plt.subplot(1, 2, 1)
-        # plt.plot(rounds, accuracy_values, 'o-', label=f'{dropout_pattern} dropout')
-        # plt.title(f'Accuracy with {dropout_rate*100:.0f}% Dropout')
-        # plt.xlabel('Round')
-        # plt.ylabel('Accuracy')
-        # plt.grid(True)
-        # plt.ylim(0, 1)
-
-        # # Plot loss
-        # plt.subplot(1, 2, 2)
-        # plt.plot(rounds, loss_values, 'o-', color='orange', label=f'{dropout_pattern} dropout')
-        # plt.title(f'Loss with {dropout_rate*100:.0f}% Dropout')
-        # plt.xlabel('Round')
-        # plt.ylabel('Loss')
-        # plt.grid(True)
-
-        # plt.tight_layout()
-
-        # if save_results:
-        #     # Create results directory
-        #     os.makedirs("results", exist_ok=True)
-
-        #     # Save figure
-        #     plt.savefig(f"results/{experiment_name}.png")
-
-        #     # Save metrics to CSV
-        #     metrics_df = pd.DataFrame({
-        #         "round": rounds,
-        #         "accuracy": accuracy_values,
-        #         "loss": loss_values
-        #     })
-        #     metrics_df.to_csv(f"results/{experiment_name}_metrics.csv", index=False)
-
-        #     # Save dropout history
-        #     dropout_df = pd.DataFrame([
-        #         {"round": round_num, "dropped_clients": ",".join(map(str, clients))}
-        #         for round_num, clients in dropout_history.items()
-        #     ])
-        #     dropout_df.to_csv(f"results/{experiment_name}_dropout.csv", index=False)
-
-        # plt.show()
-
         return results, history
     
     except Exception as e:
