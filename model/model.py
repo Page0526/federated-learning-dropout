@@ -1,5 +1,4 @@
 import torch.nn as nn 
-import torchsummary
 
 class BrainMRINet(nn.Module):
     def __init__(self, num_classes=2, input_size=(130, 130)):

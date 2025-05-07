@@ -28,6 +28,17 @@ def run_experiment(cfg: DictConfig) -> None:
 
     device = cfg.device
     epochs = cfg.train.epochs 
+    wandb.login(
+        key = WANDB_APIKEY
+    ) 
+    wandb.init(
+        project="federated-mri-server_torch",
+        name=f"{cfg.experiment.name}",
+        config=OmegaConf.to_container(cfg, resolve=True),
+        group="server"
+    )
+
+
 
     logger.info("Loading dataset")
 
@@ -71,6 +82,30 @@ def run_experiment(cfg: DictConfig) -> None:
         experiment_name=cfg.experiment.name,
         resource_config=resources
     )
+
+    print(f"Result is {results}")
+
+    for idx in range(len(results["rounds"])):
+        wandb.log({
+            "round": idx,
+            "global_accuracy": results["accuracy"][idx],
+            "loss": results["loss"][idx], 
+        })
+
+
+ 
+    # Log dropout history
+    for round_idx, dropped in history.items():
+        wandb.log({
+            "round": round_idx,
+            "dropped_clients_count": len(dropped),
+            "dropped_clients": wandb.Table(
+                columns=["client_id"],
+                data=[[client_id] for client_id in dropped]
+            )
+        })
+    
+    wandb.finish()
 
 
     logger.info("Experiments completed successfully")
@@ -170,4 +205,4 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
 
-    run_experiment_with_lightning()
+    run_experiment()

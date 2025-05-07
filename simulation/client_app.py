@@ -16,6 +16,8 @@ from model.gender_module import BrainMRILightningModule
 
 
 logger = logging.getLogger(__name__)
+client_loggers = {}
+
 
 class FlowerClient(NumPyClient):
     def __init__(self, model, train_dataloader, val_dataloader, optimizer, criterion, epochs,  device):
@@ -73,7 +75,35 @@ class FlowerLightningClient(NumPyClient):
         self.device = device 
         self.client_id = client_id
         self.batch_size = batch_size
-        
+        global client_loggers
+
+        if self.client_id not in client_loggers:
+            client_loggers[self.client_id] = {
+                "train": WandbLogger(
+                    project="brain_mri_classification",
+                    name=f"client_{self.client_id}_training",
+                    config={
+                        "learning_rate": self.model.hparams.learning_rate,
+                        "weight_decay": self.model.hparams.weight_decay,
+                        "batch_size": self.batch_size,
+                        "epochs": self.epochs,
+                    },
+                    save_dir="wandb_logs",
+                    group=f"client_{self.client_id}",
+                ),
+                "eval": WandbLogger(
+                    project="brain_mri_classification",
+                    name=f"client_{self.client_id}_evaluation",
+                    config={
+                        "learning_rate": self.model.hparams.learning_rate,
+                        "weight_decay": self.model.hparams.weight_decay,
+                        "batch_size": self.batch_size,
+                        "epochs": self.epochs,
+                    },
+                    save_dir="wandb_logs",
+                    group=f"client_{self.client_id}",
+                )
+            }
 
 
 
@@ -88,10 +118,8 @@ class FlowerLightningClient(NumPyClient):
         params_dict = zip(self.model.state_dict().keys(), parameters)
         state_dict = OrderedDict()
         for k, v in params_dict:
-            if v.ndim == 0:
-                state_dict[k] = torch.tensor(v)
-            else:
-                state_dict[k] = torch.tensor(v)
+            state_dict[k] = torch.tensor(v)
+            
 
         if state_dict:
             self.model.load_state_dict(state_dict, strict=False)
@@ -100,19 +128,9 @@ class FlowerLightningClient(NumPyClient):
     def fit(self, parameters, config):
 
         self.set_parameters(parameters)
-
-        wandb_logger = WandbLogger(
-            project="brain_mri_classification",
-            name=f"client_{self.client_id}_round_{config.get('round_num', 0)}",
-            config={
-                "learning_rate": self.model.hparams.learning_rate,
-                "weight_decay": self.model.hparams.weight_decay,
-                "batch_size": self.batch_size,
-                "epochs": self.epochs,
-            },
-            save_dir="wandb_logs",
-        ) 
-
+        print(f"Client ID: {self.client_id} and {self.client_id not in client_loggers} and len is {len(client_loggers)}")
+        wandb_logger = client_loggers[self.client_id]["train"]
+        wandb_logger.experiment.config.update({"current_round": config.get("round_num", 0)})
 
         checkpoint_callback = ModelCheckpoint(
             dirpath=f"./checkpoints/client_{self.client_id}",
@@ -125,8 +143,8 @@ class FlowerLightningClient(NumPyClient):
         trainer = pl.Trainer(
             max_epochs=self.epochs,
             accelerator="auto",
-            devices=1 if torch.cuda.is_available() else None,
-            logger=wandb_logger if self.use_wandb else None,
+            devices=1,
+            logger=wandb_logger, 
             callbacks=[checkpoint_callback],
             enable_progress_bar=False,  # Disable progress bar for cleaner logs
             log_every_n_steps=1
@@ -134,7 +152,7 @@ class FlowerLightningClient(NumPyClient):
 
         trainer.fit(self.model, train_dataloaders=self.train_dataloader, val_dataloaders=self.val_dataloader)
 
-
+        
         metrics = {
             "loss": self.model.trainer.callback_metrics.get("train/loss", 0).item(),
             "accuracy": self.model.trainer.callback_metrics.get("train/acc", 0).item(),
@@ -142,7 +160,12 @@ class FlowerLightningClient(NumPyClient):
             "val_accuracy": self.model.trainer.callback_metrics.get("val/acc", 0).item()
         }
 
-        wandb.finish()
+        for metric_name, metric_value in metrics.items():
+            wandb_logger.experiment.log({
+                f"{metric_name}": metric_value,
+                "round": config.get("round_num", 0),
+            })
+
 
         return self.get_parameters(config={}), len(self.train_dataloader.dataset), metrics
 
@@ -152,22 +175,14 @@ class FlowerLightningClient(NumPyClient):
         self.set_parameters(parameters)
 
         round_num = config.get("round_num", 0)
-        wandb_logger = WandbLogger(
-            project="brain_mri_classification",
-            name=f"eval_client_{self.client_id}_round_{round_num}",
-            config={
-                "learning_rate": self.model.hparams.learning_rate,
-                "weight_decay": self.model.hparams.weight_decay,
-                "batch_size": self.model.hparams.batch_size,
-                "epochs": self.epochs,
-            },
-            save_dir="wandb_logs",
-        )
+
+        wandb_logger = client_loggers[self.client_id]["eval"]
+        wandb_logger.experiment.config.update({"current_round": round_num})
 
         trainer = pl.Trainer(
             accelerator="auto",
-            devices=1 if torch.cuda.is_available() else None,
-            logger=wandb_logger if self.use_wandb else None,
+            devices=1 ,
+            logger=wandb_logger,
             enable_progress_bar=False
         )
 
@@ -182,7 +197,11 @@ class FlowerLightningClient(NumPyClient):
             "accuracy": test_accuracy,
         }
 
-        wandb.finish()
+        for metric_name, metric_value in metrics.items():
+            wandb_logger.experiment.log({
+                f"{metric_name}": metric_value,
+                "round": round_num
+            })
 
         return float(test_loss), len(self.val_dataloader.dataset), metrics
 
@@ -221,14 +240,13 @@ def create_lightning_client_fn(device, epochs, client_datasets, batch_size, lear
         
         
         client_id = context.node_config['partition-id']
-
         train_dataset, val_dataset = client_datasets[client_id]
 
         train_dataloader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True, num_workers = num_workers)
         val_dataloader = DataLoader(val_dataset, batch_size = batch_size, shuffle = False, num_workers = num_workers)
 
         model = BrainMRINet()
-        pl_model = BrainMRILightningModule(model, learning_rate=learning_rate, weight_decay=weight_decay)
+        pl_model = BrainMRILightningModule(model, learning_rate=learning_rate, weight_decay=weight_decay, batch_size = batch_size )
 
         return FlowerLightningClient(pl_model, train_dataloader, val_dataloader, epochs, batch_size, device, client_id).to_client()
 

@@ -9,6 +9,16 @@ from simulation.strategy import DropoutFedAvg
 from flwr.common import Context
 import torch 
 
+def cleanup_wandb_loggers():
+    from simulation.client_app import client_loggers
+    
+    # Close all client loggers
+    for client_id, loggers in client_loggers.items():
+        for logger_type, logger in loggers.items():
+            logger.experiment.finish()
+    
+    # Clear the dictionary
+    client_loggers.clear()
 
 
 def run_dropout_experiment(
@@ -66,7 +76,7 @@ def run_dropout_experiment(
     backend_config = {
         "client_resources": {
             "num_cpus": 1,
-            "num_gpus": 1.0
+            "num_gpus": 0
         }
     }
     history = strategy.get_dropout_history()
@@ -88,6 +98,7 @@ def run_dropout_experiment(
         accuracy_values = [metrics.get("accuracy", 0.0) for metrics in eval_metrics]
         loss_values = [metrics.get("loss", 0.0) for metrics in eval_metrics]
 
+        # cleanup_wandb_loggers()
 
         results = {
             "rounds": rounds,

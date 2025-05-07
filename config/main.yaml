@@ -3,12 +3,12 @@ defaults:
   - train: default
   - data: mini_local
   - _self_
-base_path: "/workspace/thviet/trungnnv/federated-learning-dropout"
+base_path: "/workspaces/federated-learning-dropout"
 device: ${train.device}
 run_name: ${experiment.pattern}_${experiment.dropout_rate}
 seed: 42
-num_clients: 3
-num_rounds: 5
+num_clients: 4
+num_rounds: 10
 
 # Hydra configuration
 hydra:

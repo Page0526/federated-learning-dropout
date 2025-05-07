@@ -7,7 +7,7 @@ import torch
 
 class BrainMRILightningModule(pl.LightningModule): 
     
-    def __init__(self, model: nn.Module, learning_rate: float, weight_decay: float):
+    def __init__(self, model: nn.Module, learning_rate: float, weight_decay: float, batch_size: int ):
         super().__init__()
 
         self.save_hyperparameters(ignore=['model'])
@@ -15,6 +15,7 @@ class BrainMRILightningModule(pl.LightningModule):
         self.model = model 
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.batch_size = batch_size
 
 
         self.train_loss = MeanMetric()
@@ -52,7 +53,10 @@ class BrainMRILightningModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer =  optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
-        return optimizer
+        return {
+            "optimizer": optimizer,
+            "gradient_clip_val": 1.0,  # Adjust value as needed
+        }
     
 
     def training_step(self, batch, batch_idx):
@@ -66,7 +70,7 @@ class BrainMRILightningModule(pl.LightningModule):
         self.train_loss(loss)
         self.train_acc(preds, y)
         
-        # Log metrics
+
         self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
         
