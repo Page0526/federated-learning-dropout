@@ -133,7 +133,7 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
     logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
 
     wandb.login(
-        key = WANDB_APIKEY
+        key = WANDB_APIKEY if WANDB_APIKEY else cfg.tracking.api_key
     )
 
     wandb.init(

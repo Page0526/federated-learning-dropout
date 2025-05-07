@@ -33,6 +33,14 @@ run_single_experiment() {
         cmd="$cmd model=$MODEL"
     fi
 
+    if [ -n "$NUM_CLIENTS" ]; then
+        cmd="$cmd num_clients=$NUM_CLIENTS"
+    fi
+
+    if [ -n "$ROUND" ]; then
+        cmd="$cmd num_rounds=$ROUND"
+    fi
+
 
     
     echo "Running experiment: $exp_name"
@@ -65,6 +73,14 @@ run_all_experiments() {
 
     if [ -n "$MODEL" ]; then
         cmd="$cmd model=$MODEL"
+    fi
+
+    if [ -n "$NUM_CLIENTS" ]; then
+        cmd="$cmd num_clients=$NUM_CLIENTS"
+    fi
+
+    if [ -n "$ROUND" ]; then
+        cmd="$cmd num_rounds=$ROUND"
     fi
 
     
@@ -136,6 +152,23 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             MODEL="$2"
+            shift 2
+            ;;
+
+        -c | --num-clients)
+            if [ -z "$2" ]; then
+                echo "Please provide a number of clients."
+                exit 1
+            fi
+            NUM_CLIENTS="$2"
+            shift 2
+            ;;
+        -r | --num_rounds)
+            if [ -z "$2" ]; then
+                echo "Please provide a number of rounds."
+                exit 1
+            fi
+            ROUND="$2"
             shift 2
             ;;
 
