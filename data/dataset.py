@@ -21,7 +21,8 @@ class MRIDataset(Dataset) :
 
 
         all_nii_files = list(self.root_dir.rglob("*.nii"))
-        self.file_paths = [fp for fp in all_nii_files if fp.is_file()]
+        fail_paths = ["sub-BrainAge005600/anat/sub-BrainAge005600_T1w.nii/sub-BrainAge005600_T1w.nii"]
+        self.file_paths = [fp for fp in all_nii_files if fp.is_file() and fp.name not in fail_paths ]
 
         valid_subjects = set(self.labels_df['subject_id'].values)
 
