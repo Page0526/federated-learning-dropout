@@ -1,4 +1,4 @@
 pattern: "random"
-dropout_rate: 0
+dropout_rate: 0.3
 fixed_clients: []
 name: "random_dropout_30pct"

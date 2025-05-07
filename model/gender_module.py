@@ -7,45 +7,33 @@ import torch
 
 class BrainMRILightningModule(pl.LightningModule): 
     
-    def __init__(self, model: nn.Module, learning_rate: float, weight_decay: float, batch_size: int ):
+    def __init__(self, net: nn.Module, learning_rate: float, weight_decay: float, batch_size: int ):
         super().__init__()
 
-        self.save_hyperparameters(ignore=['model'])
+        self.save_hyperparameters(ignore=['net'])
 
-        self.model = model 
+        self.model = net 
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.batch_size = batch_size
 
 
-        self.train_loss = MeanMetric()
-        self.val_loss = MeanMetric()
-        self.test_loss = MeanMetric()
-
-
-        self.train_acc = Accuracy(task="binary" if model.classifier[-1].out_features == 1 else "multiclass", 
-                                 num_classes=model.classifier[-1].out_features)
-        self.val_acc = Accuracy(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                 num_classes=model.classifier[-1].out_features)
+        self.train_acc = Accuracy(task= "multiclass",  num_classes=net.classifier[-1].out_features)
+        self.val_acc = Accuracy(task= "multiclass", num_classes=net.classifier[-1].out_features)
         
-        self.test_acc = Accuracy(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                    num_classes=model.classifier[-1].out_features)
+        self.test_acc = Accuracy(task= "multiclass",  num_classes=net.classifier[-1].out_features)
         
         # F1 score 
-        self.val_f1 = F1Score(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                              num_classes=model.classifier[-1].out_features)
-        self.test_f1 = F1Score(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                num_classes=model.classifier[-1].out_features)
+        self.val_f1 = F1Score(task="multiclass", num_classes=net.classifier[-1].out_features)
+        self.test_f1 = F1Score(task="multiclass", num_classes=net.classifier[-1].out_features)
         # Precision
-        self.val_precision = Precision(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                       num_classes=model.classifier[-1].out_features)   
-        self.test_precision = Precision(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                        num_classes=model.classifier[-1].out_features)
+        self.val_precision = Precision(task="multiclass", num_classes=net.classifier[-1].out_features)   
+        self.test_precision = Precision(task="multiclass", num_classes=net.classifier[-1].out_features)
         # Recall
-        self.val_recall = Recall(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                 num_classes=model.classifier[-1].out_features)
-        self.test_recall = Recall(task="binary" if model.classifier[-1].out_features == 1 else "multiclass",
-                                  num_classes=model.classifier[-1].out_features)
+        self.val_recall = Recall(task="multiclass", num_classes=net.classifier[-1].out_features)
+        self.test_recall = Recall(task="multiclass", num_classes=net.classifier[-1].out_features)
+
+        self.criterion = nn.CrossEntropyLoss()
 
 
     def forward(self, x):
@@ -67,12 +55,11 @@ class BrainMRILightningModule(pl.LightningModule):
         preds = torch.argmax(outputs, dim=1)
         
         # Update metrics
-        self.train_loss(loss)
-        self.train_acc(preds, y)
+        acc = self.train_acc(preds, y)
         
 
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
         
         return loss
     
@@ -81,22 +68,22 @@ class BrainMRILightningModule(pl.LightningModule):
         x, y = batch
         outputs = self(x)
         
-        loss = nn.CrossEntropyLoss()(outputs, y)
+        loss = self.criterion(outputs, y)
         preds = torch.argmax(outputs, dim=1)
         
         # Update metrics
-        self.val_loss(loss)
-        self.val_acc(preds, y)
-        self.val_f1(preds, y)
-        self.val_precision(preds, y)
-        self.val_recall(preds, y)
+       
+        acc =  self.val_acc(preds, y)
+        f1 =  self.val_f1(preds, y)
+        precision =  self.val_precision(preds, y)
+        recall =  self.val_recall(preds, y)
         
         # Log metrics
-        self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val/acc", self.val_acc, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val/f1", self.val_f1, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val/precision", self.val_precision, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val/recall", self.val_recall, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/f1", f1, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/precision", precision, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val/recall", recall, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
     
@@ -105,87 +92,94 @@ class BrainMRILightningModule(pl.LightningModule):
         x, y = batch
         outputs = self(x)
         
-        loss = nn.CrossEntropyLoss()(outputs, y)
+        loss = self.criterion(outputs, y)
         preds = torch.argmax(outputs, dim=1)
         
         # Update metrics
-        self.test_loss(loss)
-        self.test_acc(preds, y)
-        self.test_f1(preds, y)
-        self.test_precision(preds, y)
-        self.test_recall(preds, y)
+        acc = self.test_acc(preds, y)
+        f1 = self.test_f1(preds, y)
+        precision = self.test_precision(preds, y)
+        recall = self.test_recall(preds, y)
         
         # Log metrics
-        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/acc", self.test_acc, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/f1", self.test_f1, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/precision", self.test_precision, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/recall", self.test_recall, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/f1", f1, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/precision", precision, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/recall", recall, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
     
 
-    def on_train_epoch_end(self):
-        train_loss = self.train_loss.compute()
-        train_acc = self.train_acc.compute()
 
-        metrics = {
-            "train_loss": train_loss,
-            "train_acc": train_acc
+
+class DenseNetModule(pl.LightningModule):
+    def __init__(self, model, lr=1e-3, weight_decay = 1e-2):
+        super().__init__()
+        self.model = model
+        self.lr = lr
+        self.weight_decay = weight_decay
+        # how confidence model is in it prediction
+        # tức model có thể rất tự tin trong quyết định nhưng thực tế lại sai
+        # BCE = y*log(y_pred) + (1 - y)*log(1 - y_pred)
+        self.criterion = nn.BCEWithLogitsLoss()
+        self.train_loss = MeanMetric()
+        self.val_loss = MeanMetric()
+        self.test_loss = MeanMetric()
+
+    def forward(self, x):
+        return self.model(x)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        # x.shape  = (batch_size, in_channel, height, width, depth), y.shape = (batch_size)
+        logits = self(x.unsqueeze(1))
+        
+        loss = self.criterion(logits, y.float().unsqueeze(1))
+        self.train_loss(loss)
+        acc = ((torch.sigmoid(logits) > 0.5).float() == y.unsqueeze(1)).float().mean()
+        
+        self.log('train_loss', self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('train_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+        
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x.unsqueeze(1))
+        
+        loss = self.criterion(logits, y.float().unsqueeze(1))
+        self.val_loss(loss)
+        acc = ((torch.sigmoid(logits) > 0.5).float() == y.unsqueeze(1)).float().mean()
+        
+        self.log('val_loss', self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x.unsqueeze(1))
+        
+        loss = self.criterion(logits, y.float().unsqueeze(1))
+        self.test_loss(loss)
+        acc = ((torch.sigmoid(logits) > 0.5).float() == y.unsqueeze(1)).float().mean()
+        
+        self.log('test_loss', self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('test_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+
+    def configure_optimizers(self):
+        optimizer =  torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay = self.weight_decay)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.95)
+
+        return {
+           "optimizer": optimizer,
+           "lr_scheduler": {
+               "scheduler": scheduler,
+               "monitor": "val_loss",
+           },
         }
-        self.log_dict(metrics, prog_bar=True)
+    
 
-
-
-
-        self.train_loss.reset()
-        self.train_acc.reset()
-
-
-    def on_validation_epoch_end(self):
-        val_loss = self.val_loss.compute()
-        val_acc = self.val_acc.compute()
-        val_f1 = self.val_f1.compute()
-        val_precision = self.val_precision.compute()
-        val_recall = self.val_recall.compute()
-
-        metrics = {
-            "val_loss": val_loss,
-            "val_acc": val_acc,
-            "val_f1": val_f1,
-            "val_precision": val_precision,
-            "val_recall": val_recall
-        }
-        self.log_dict(metrics, prog_bar=True)
-
-        self.val_loss.reset()
-        self.val_acc.reset()
-        self.val_f1.reset()
-        self.val_precision.reset()
-        self.val_recall.reset()
-
-    def on_test_epoch_end(self):
-        test_loss = self.test_loss.compute()
-        test_acc = self.test_acc.compute()
-        test_f1 = self.test_f1.compute()
-        test_precision = self.test_precision.compute()
-        test_recall = self.test_recall.compute()
-
-        metrics = {
-            "test_loss": test_loss,
-            "test_acc": test_acc,
-            "test_f1": test_f1,
-            "test_precision": test_precision,
-            "test_recall": test_recall
-        }
-        self.log_dict(metrics, prog_bar=True)
-
-        self.test_loss.reset()
-        self.test_acc.reset()
-        self.test_f1.reset()
-        self.test_precision.reset()
-        self.test_recall.reset()
-
+   
 
     
 

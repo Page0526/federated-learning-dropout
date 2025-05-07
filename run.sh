@@ -9,7 +9,6 @@ run_single_experiment() {
     exp_name=$1
     cmd="python main.py experiment=$exp_name"
     
-    # Add base_path override if specified
     if [ -n "$BASE_PATH" ]; then
         cmd="$cmd base_path=$BASE_PATH"
     fi
@@ -26,7 +25,7 @@ run_single_experiment() {
         cmd="$cmd tracking.api_key=$WANDB_API_KEY"
     fi
 
-    if [ -n "$NUM_GPU"]; then
+    if [ -n "$NUM_GPU" ]; then
         cmd="$cmd gpus=$NUM_GPU"
     fi
 
@@ -39,7 +38,7 @@ run_single_experiment() {
 
 run_all_experiments() {
     echo "Running all experiments sequentially..."
-    cmd="python main.py -m experiment=random_30pct,alternate,fixed_30pct,random_70pct,random_with_fixed"
+    cmd="python main.py -m experiment=random_30pct,alternate_dropout,fixed_30pct,random_70pct"
     
     # Add base_path override if specified
     if [ -n "$BASE_PATH" ]; then
@@ -56,7 +55,7 @@ run_all_experiments() {
     if [ -n "$WANDB_API_KEY" ]; then
         cmd="$cmd tracking.api_key=$WANDB_API_KEY"
     fi
-    if [ -n "$NUM_GPU"]; then
+    if [ -n "$NUM_GPU" ]; then
         cmd="$cmd gpus=$NUM_GPU"
     fi
 

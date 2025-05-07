@@ -14,11 +14,12 @@ class MRIDataset(Dataset) :
         self.transform = transform
         if label_df is None:
           self.labels_df = pd.read_csv(label_path)
+          
         else :
           self.labels_df = label_df
 
         self.labels_df['subject_id'] = self.labels_df['subject_id'].astype(str)
-
+        self.labels_df = self.labels_df[self.labels_df['subject_dx'] == 'control']
 
         all_nii_files = list(self.root_dir.rglob("*.nii"))
         fail_paths = ["sub-BrainAge005600/anat/sub-BrainAge005600_T1w.nii/sub-BrainAge005600_T1w.nii"]

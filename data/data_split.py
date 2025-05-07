@@ -3,7 +3,9 @@ import torch
 from data.dataset import MRIDataset
 import pandas as pd 
 from data.helper import preprocessing_labels, prepare_data, sampling_data, create_train_test, distributed_data_to_clients
+import warnings 
 
+warnings.filterwarnings('ignore')
 
 ROOT_PATH = "dataset/not_skull_stripped"
 LABEL_PATH = "dataset/label.csv"

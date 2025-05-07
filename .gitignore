@@ -174,4 +174,5 @@ cython_debug/
 .pypirc
 dataset/
 trung-aimed
-outputs/
+outputs
+multirun/

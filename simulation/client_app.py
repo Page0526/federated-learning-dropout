@@ -5,19 +5,20 @@ from model.helper import train, test
 from flwr.common import  Context
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from model.model import BrainMRINet
+from model.component.cnn import BrainMRINet
 import torch.nn as nn 
 import logging 
 import lightning as pl
-import wandb 
+import warnings 
 from lightning.pytorch.loggers.wandb import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 from model.gender_module import BrainMRILightningModule
 
+warnings.filterwarnings('ignore')
+
+
 
 logger = logging.getLogger(__name__)
-client_loggers = {}
-
 
 class FlowerClient(NumPyClient):
     def __init__(self, model, train_dataloader, val_dataloader, optimizer, criterion, epochs,  device):
@@ -75,36 +76,9 @@ class FlowerLightningClient(NumPyClient):
         self.device = device 
         self.client_id = client_id
         self.batch_size = batch_size
-        global client_loggers
 
-        if self.client_id not in client_loggers:
-            client_loggers[self.client_id] = {
-                "train": WandbLogger(
-                    project="brain_mri_classification",
-                    name=f"client_{self.client_id}_training",
-                    config={
-                        "learning_rate": self.model.hparams.learning_rate,
-                        "weight_decay": self.model.hparams.weight_decay,
-                        "batch_size": self.batch_size,
-                        "epochs": self.epochs,
-                    },
-                    save_dir="wandb_logs",
-                    group=f"client_{self.client_id}",
-                ),
-                "eval": WandbLogger(
-                    project="brain_mri_classification",
-                    name=f"client_{self.client_id}_evaluation",
-                    config={
-                        "learning_rate": self.model.hparams.learning_rate,
-                        "weight_decay": self.model.hparams.weight_decay,
-                        "batch_size": self.batch_size,
-                        "epochs": self.epochs,
-                    },
-                    save_dir="wandb_logs",
-                    group=f"client_{self.client_id}",
-                )
-            }
 
+        
 
 
     def get_parameters(self, config):
@@ -128,10 +102,7 @@ class FlowerLightningClient(NumPyClient):
     def fit(self, parameters, config):
 
         self.set_parameters(parameters)
-        print(f"Client ID: {self.client_id} and {self.client_id not in client_loggers} and len is {len(client_loggers)}")
-        wandb_logger = client_loggers[self.client_id]["train"]
-        wandb_logger.experiment.config.update({"current_round": config.get("round_num", 0)})
-
+        
         checkpoint_callback = ModelCheckpoint(
             dirpath=f"./checkpoints/client_{self.client_id}",
             filename=f"round_{config.get('round_num', 0)}" + "-{epoch:02d}",
@@ -144,27 +115,35 @@ class FlowerLightningClient(NumPyClient):
             max_epochs=self.epochs,
             accelerator="auto",
             devices=1,
-            logger=wandb_logger, 
             callbacks=[checkpoint_callback],
-            enable_progress_bar=False,  # Disable progress bar for cleaner logs
+            enable_progress_bar=False, 
             log_every_n_steps=1
         )
 
         trainer.fit(self.model, train_dataloaders=self.train_dataloader, val_dataloaders=self.val_dataloader)
 
-        
+        callback_metrics = trainer.callback_metrics
+
+        train_loss = callback_metrics.get("train/loss", 0)
+        train_accuracy = callback_metrics.get("train/acc", 0)
+        val_loss = callback_metrics.get("val/loss", 0)
+        val_accuracy = callback_metrics.get("val/acc", 0)
+        val_precision = callback_metrics.get("val/precision", 0)
+        val_recall = callback_metrics.get("val/recall", 0)
+        val_f1 = callback_metrics.get("val/f1", 0)
+
+
+
         metrics = {
-            "loss": self.model.trainer.callback_metrics.get("train/loss", 0).item(),
-            "accuracy": self.model.trainer.callback_metrics.get("train/acc", 0).item(),
-            "val_loss": self.model.trainer.callback_metrics.get("val/loss", 0).item(),
-            "val_accuracy": self.model.trainer.callback_metrics.get("val/acc", 0).item()
+            "train_loss": train_loss.item() if isinstance(train_loss, torch.Tensor) else float(train_loss),
+            "train_accuracy": train_accuracy.item() if isinstance(train_accuracy, torch.Tensor) else float(train_accuracy),
+            "val_loss": val_loss.item() if isinstance(val_loss, torch.Tensor) else float(val_loss),
+            "val_accuracy": val_accuracy.item() if isinstance(val_accuracy, torch.Tensor) else float(val_accuracy),
+            "val_precision": val_precision.item() if isinstance(val_precision, torch.Tensor) else float(val_precision),
+            "val_recall": val_recall.item() if isinstance(val_recall, torch.Tensor) else float(val_recall),
+            "val_f1": val_f1.item() if isinstance(val_f1, torch.Tensor) else float(val_f1)
         }
 
-        for metric_name, metric_value in metrics.items():
-            wandb_logger.experiment.log({
-                f"{metric_name}": metric_value,
-                "round": config.get("round_num", 0),
-            })
 
 
         return self.get_parameters(config={}), len(self.train_dataloader.dataset), metrics
@@ -174,35 +153,33 @@ class FlowerLightningClient(NumPyClient):
 
         self.set_parameters(parameters)
 
-        round_num = config.get("round_num", 0)
-
-        wandb_logger = client_loggers[self.client_id]["eval"]
-        wandb_logger.experiment.config.update({"current_round": round_num})
-
+       
         trainer = pl.Trainer(
             accelerator="auto",
             devices=1 ,
-            logger=wandb_logger,
             enable_progress_bar=False
         )
 
         results = trainer.test(self.model, dataloaders=self.val_dataloader)
+        
+        callback_metrics = trainer.callback_metrics
 
-        test_loss = results[0].get("test/loss", 0)
-        test_accuracy = results[0].get("test/acc", 0)
+        test_loss = callback_metrics.get("test/loss", 0)
+        test_accuracy = callback_metrics.get("test/acc", 0)
+        test_f1 = callback_metrics.get("test/f1", 0)
+        test_precision = callback_metrics.get("test/precision", 0)
+        test_recall = callback_metrics.get("test/recall", 0)
         
         # Additional metrics
         metrics = {
-            "loss": test_loss,
-            "accuracy": test_accuracy,
+            "test_loss": test_loss.item() if isinstance(test_loss, torch.Tensor) else float(test_loss),
+            "test_accuracy": test_accuracy.item() if isinstance(test_accuracy, torch.Tensor) else float(test_accuracy),
+            "test_f1": test_f1.item() if isinstance(test_f1, torch.Tensor) else float(test_f1),
+            "test_precision": test_precision.item() if isinstance(test_precision, torch.Tensor) else float(test_precision),
+            "test_recall": test_recall.item() if isinstance(test_recall, torch.Tensor) else float(test_recall)
         }
 
-        for metric_name, metric_value in metrics.items():
-            wandb_logger.experiment.log({
-                f"{metric_name}": metric_value,
-                "round": round_num
-            })
-
+       
         return float(test_loss), len(self.val_dataloader.dataset), metrics
 
 
@@ -234,7 +211,7 @@ def create_client_fn(device, epochs, client_datasets, batch_size, learning_rate,
 
 
 
-def create_lightning_client_fn(device, epochs, client_datasets, batch_size, learning_rate, num_workers, weight_decay = 0.0001):
+def create_lightning_client_fn(device, epochs, client_datasets, batch_size, num_workers, pl_model):
 
     def client_fn(context: Context):
         
@@ -245,8 +222,9 @@ def create_lightning_client_fn(device, epochs, client_datasets, batch_size, lear
         train_dataloader = DataLoader(train_dataset, batch_size = batch_size, shuffle = True, num_workers = num_workers)
         val_dataloader = DataLoader(val_dataset, batch_size = batch_size, shuffle = False, num_workers = num_workers)
 
-        model = BrainMRINet()
-        pl_model = BrainMRILightningModule(model, learning_rate=learning_rate, weight_decay=weight_decay, batch_size = batch_size )
+        # model = BrainMRINet()
+        # pl_model = BrainMRILightningModule(model, learning_rate=learning_rate, weight_decay=weight_decay, batch_size = batch_size )
+
 
         return FlowerLightningClient(pl_model, train_dataloader, val_dataloader, epochs, batch_size, device, client_id).to_client()
 

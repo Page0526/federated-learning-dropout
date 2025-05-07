@@ -3,13 +3,18 @@ from simulation.server_app import run_dropout_experiment
 from simulation.client_app import create_client_fn, create_lightning_client_fn
 from data.data_split import iid_client_split, same_distribution_client_split
 from data.dataset import MRIDataset
-import torch 
+import torch.nn as nn 
 import hydra 
 from omegaconf import DictConfig, OmegaConf
 import logging 
 import wandb 
 from dotenv import load_dotenv
 import os 
+import warnings
+import lightning as pl 
+
+
+warnings.filterwarnings('ignore')
 load_dotenv()
 
 WANDB_APIKEY = os.getenv("WANDB_APIKEY")
@@ -70,11 +75,17 @@ def run_experiment(cfg: DictConfig) -> None:
 
     }
 
+    model: nn.Module = hydra.utils.instantiate(cfg.model.net)
+
+
+    model.to(device)
+
 
     logger.info("Running experiments")
 
     results, history = run_dropout_experiment(
         client_fn_creator=create_client_fn,
+        model=model,
         num_clients=cfg.num_clients,
         num_rounds=cfg.num_rounds,
         dropout_rate=cfg.experiment.dropout_rate,
@@ -165,25 +176,38 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
     }
 
     logger.info("Running experiments with PyTorch Lightning")
+
+    net : nn.Module = hydra.utils.instantiate(cfg.model.net)
+    pl_model : pl.LightningModule = hydra.utils.instantiate(cfg.model, net=net, learning_rate=cfg.train.learning_rate, weight_decay=cfg.train.weight_decay, batch_size=cfg.train.batch_size)
+
     results, history = run_dropout_experiment(
         client_fn_creator=create_lightning_client_fn,
+        pl_model=pl_model,
         num_clients=cfg.num_clients,
         num_rounds=cfg.num_rounds,
         dropout_rate=cfg.experiment.dropout_rate,
         dropout_pattern=cfg.experiment.pattern,
         experiment_name=cfg.experiment.name,
+        num_gpus=cfg.gpus,
         resource_config=resources
     )
     logger.info("Run successfully + wandb tracking")
+    print(f"Result is {results}")
 
-    # Log final results to wandb
-    for round_idx, metrics in enumerate(results.get("metrics", [])):
+
+    for idx in range(len(results["rounds"])):
         wandb.log({
-            "round": round_idx,
-            "global_accuracy": metrics.get("accuracy", 0),
-            "global_loss": metrics.get("loss", 0),
+            "round": idx,
+            "train_accuracy": results["train_accuracy"][idx],
+            "train_loss": results["train_loss"][idx],
+            "test_accuracy": results["test_accuracy"][idx],
+            "test_loss": results["test_loss"][idx],
+            "test_f1": results["test_f1"][idx],
+            "test_precision": results["test_precision"][idx],
+            "test_recall": results["test_recall"][idx],
         })
-    
+
+
     # Log dropout history
     for round_idx, dropped in history.items():
         wandb.log({
@@ -194,7 +218,9 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
                 data=[[client_id] for client_id in dropped]
             )
         })
-    
+
+
+
     wandb.finish()
     
     logger.info("Experiments completed successfully")
@@ -206,4 +232,4 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
 
 if __name__ == "__main__":
 
-    run_experiment()
+    run_experiment_with_lightning()

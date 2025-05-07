@@ -8,21 +8,15 @@ import os
 from simulation.strategy import DropoutFedAvg
 from flwr.common import Context
 import torch 
+import lightning as pl
+from typing import Union 
 
-def cleanup_wandb_loggers():
-    from simulation.client_app import client_loggers
-    
-    # Close all client loggers
-    for client_id, loggers in client_loggers.items():
-        for logger_type, logger in loggers.items():
-            logger.experiment.finish()
-    
-    # Clear the dictionary
-    client_loggers.clear()
+
 
 
 def run_dropout_experiment(
     client_fn_creator,
+    pl_model : Union[pl.LightningModule, torch.nn.Module], 
     num_clients: int,
     num_rounds: int = 5,
     dropout_rate: float = 0.3,
@@ -67,7 +61,7 @@ def run_dropout_experiment(
     learning_rate = resource_config.get("learning_rate", 0.001) if resource_config else 0.001
     num_workers = resource_config.get("num_workers", 1) if resource_config else 1
     client_fn = client_fn_creator(device=device, epochs=epochs, client_datasets=client_datasets
-                                , batch_size=batch_size, learning_rate=learning_rate, num_workers=num_workers)
+                                , batch_size=batch_size, pl_model=pl_model, num_workers=num_workers)
     
     # Create client and server apps
     client_app = ClientApp(client_fn=client_fn)
@@ -96,16 +90,30 @@ def run_dropout_experiment(
 
         # Format metrics for plotting
         rounds = list(range(1, len(eval_metrics) + 1))
-        accuracy_values = [metrics.get("accuracy", 0.0) for metrics in eval_metrics]
-        loss_values = [metrics.get("loss", 0.0) for metrics in eval_metrics]
+
+        train_accuracy_values = [metrics.get("train_accuracy", 0.0) for metrics in fit_metrics]
+        train_loss_values = [metrics.get("train_loss", 0.0) for metrics in fit_metrics]
+        
+
+        test_accuracy_values = [metrics.get("test_accuracy", 0.0) for metrics in eval_metrics]
+        test_loss_values = [metrics.get("test_loss", 0.0) for metrics in eval_metrics]
+        test_f1_values = [metrics.get("test_f1", 0.0) for metrics in eval_metrics]
+        test_precision_values = [metrics.get("test_precision", 0.0) for metrics in eval_metrics]
+        test_recall_values = [metrics.get("test_recall", 0.0) for metrics in eval_metrics]    
+
 
         # cleanup_wandb_loggers()
 
         results = {
             "rounds": rounds,
-            "accuracy": accuracy_values,
-            "loss": loss_values,
-            "dropout_history": dropout_history
+            "train_accuracy": train_accuracy_values,
+            "train_loss": train_loss_values,
+
+            "test_accuracy": test_accuracy_values,
+            "test_loss": test_loss_values,
+            "test_f1": test_f1_values,
+            "test_precision": test_precision_values,
+            "test_recall": test_recall_values
         }
 
         return results, history
