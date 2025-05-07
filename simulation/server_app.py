@@ -30,6 +30,7 @@ def run_dropout_experiment(
     fixed_clients: Optional[List[int]] = None,
     experiment_name: str = "dropout_experiment",
     save_results: bool = True,
+    num_gpus : int = 0, 
     resource_config : Optional[Dict[str, float]] = None,
 ):
     
@@ -76,7 +77,7 @@ def run_dropout_experiment(
     backend_config = {
         "client_resources": {
             "num_cpus": 1,
-            "num_gpus": 0
+            "num_gpus": num_gpus,
         }
     }
     history = strategy.get_dropout_history()

@@ -29,7 +29,7 @@ def run_experiment(cfg: DictConfig) -> None:
     device = cfg.device
     epochs = cfg.train.epochs 
     wandb.login(
-        key = WANDB_APIKEY
+        key =  WANDB_APIKEY if WANDB_APIKEY else cfg.tracking.api_key
     ) 
     wandb.init(
         project="federated-mri-server_torch",
@@ -80,6 +80,7 @@ def run_experiment(cfg: DictConfig) -> None:
         dropout_rate=cfg.experiment.dropout_rate,
         dropout_pattern=cfg.experiment.pattern,
         experiment_name=cfg.experiment.name,
+        num_gpus=cfg.gpus,
         resource_config=resources
     )
 

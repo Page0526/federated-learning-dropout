@@ -2,6 +2,7 @@ defaults:
   - experiment: random_30pct
   - train: default
   - data: mini_local
+  - tracking: wandb
   - _self_
 base_path: "/workspaces/federated-learning-dropout"
 device: ${train.device}
@@ -9,6 +10,7 @@ run_name: ${experiment.pattern}_${experiment.dropout_rate}
 seed: 42
 num_clients: 4
 num_rounds: 10
+gpus : 0
 
 # Hydra configuration
 hydra:

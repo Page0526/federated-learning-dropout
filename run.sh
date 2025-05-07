@@ -21,6 +21,16 @@ run_single_experiment() {
     if [ -n "$LABEL_DATA_PATH" ]; then
         cmd="$cmd data.label_path=$LABEL_DATA_PATH"
     fi
+
+    if [ -n "$WANDB_API_KEY" ]; then
+        cmd="$cmd tracking.api_key=$WANDB_API_KEY"
+    fi
+
+    if [ -n "$NUM_GPU"]; then
+        cmd="$cmd gpus=$NUM_GPU"
+    fi
+
+
     
     echo "Running experiment: $exp_name"
     echo "Command: $cmd"
@@ -43,6 +53,13 @@ run_all_experiments() {
     if [ -n "$LABEL_DATA_PATH" ]; then
         cmd="$cmd data.label_path=$LABEL_DATA_PATH"
     fi
+    if [ -n "$WANDB_API_KEY" ]; then
+        cmd="$cmd tracking.api_key=$WANDB_API_KEY"
+    fi
+    if [ -n "$NUM_GPU"]; then
+        cmd="$cmd gpus=$NUM_GPU"
+    fi
+
     
     echo "Command: $cmd"
     eval $cmd
@@ -87,6 +104,25 @@ while [[ $# -gt 0 ]]; do
             LABEL_DATA_PATH="$2"
             shift 2
             ;;
+
+        -w | --wandb)
+            if [ -z "$2" ]; then
+                echo "Please provide a wandb api key."
+                exit 1
+            fi
+            WANDB_API_KEY="$2"
+            shift 2
+            ;;
+
+        -n | --num-gpu)
+            if [ -z "$2" ]; then
+                echo "Please provide a number of gpus."
+                exit 1
+            fi
+            NUM_GPU="$2"
+            shift 2
+            ;;
+
         -h|--help)
             echo "Usage: $0 [-a | --all] | [-e | --experiment <experiment_name>] | [-b | --base-path <path>] | [-r | --root-data-path <path>] | [-l | --label-data-path <path>] | [-h | --help]"
             echo "  -a, --all                Run all experiments sequentially."
