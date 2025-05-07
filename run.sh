@@ -29,6 +29,10 @@ run_single_experiment() {
         cmd="$cmd gpus=$NUM_GPU"
     fi
 
+    if [ -n "$MODEL" ]; then
+        cmd="$cmd model=$MODEL"
+    fi
+
 
     
     echo "Running experiment: $exp_name"
@@ -57,6 +61,10 @@ run_all_experiments() {
     fi
     if [ -n "$NUM_GPU" ]; then
         cmd="$cmd gpus=$NUM_GPU"
+    fi
+
+    if [ -n "$MODEL" ]; then
+        cmd="$cmd model=$MODEL"
     fi
 
     
@@ -119,6 +127,15 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             NUM_GPU="$2"
+            shift 2
+            ;;
+
+        -m | --model)
+            if [ -z "$2" ]; then
+                echo "Please provide a model."
+                exit 1
+            fi
+            MODEL="$2"
             shift 2
             ;;
 
