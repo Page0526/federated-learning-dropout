@@ -3,17 +3,18 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple, Union
 import flwr as fl
 from flwr.common import (
-    EvaluateIns,
     EvaluateRes,
     FitIns,
     FitRes,
-    NDArrays,
     Parameters,
 )
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.client_manager import ClientManager
 from flwr.server.strategy import FedAvg
-
+from flwr.common.parameter import parameters_to_ndarrays
+import numpy as np 
+import torch
+from collections import OrderedDict
 
 
 
@@ -21,7 +22,7 @@ from flwr.server.strategy import FedAvg
 class DropoutFedAvg(FedAvg):
     """FedAvg strategy with client dropout simulation and metrics tracking."""
 
-    def __init__( self, dropout_rate: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern: str = "random", **kwargs):
+    def __init__( self, net, dropout_rate: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern: str = "random", **kwargs):
     
         if "fit_metrics_aggregation_fn" not in kwargs:
             kwargs["fit_metrics_aggregation_fn"] = self.weighted_average
@@ -39,6 +40,9 @@ class DropoutFedAvg(FedAvg):
         self.fit_metrics_history: List[Dict[str, float]] = []
         self.eval_metrics_history: List[Dict[str, float]] = []
 
+        self.net = net
+    
+
 
     def weighted_average(self, metrics: List[Tuple[int, Dict]]) -> Dict:
         """Aggregate metrics using weighted average based on number of samples."""
@@ -48,7 +52,6 @@ class DropoutFedAvg(FedAvg):
         total_examples = sum([num_examples for num_examples, _ in metrics])
         weighted_metrics = {}
 
-        # Calculate weighted metrics
         for metric_key in metrics[0][1].keys():
             weighted_sum = sum(
                 metric_dict[metric_key] * num_examples
@@ -143,7 +146,18 @@ class DropoutFedAvg(FedAvg):
         """Aggregate fit results and store metrics."""
         aggregated = super().aggregate_fit(server_round, results, failures)
 
-        # Store metrics if available
+        if aggregated and aggregated[0] is not None:
+            aggregated_ndarrays: list[np.ndarray] = fl.common.parameters_to_ndarrays(
+                aggregated[0]
+            )
+
+            params_dict = zip(self.net.state_dict().keys(), aggregated_ndarrays)
+            state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+            self.net.load_state_dict(state_dict, strict=True)
+
+            # Save the model to disk
+            torch.save(self.net.state_dict(), f"model_round_{server_round}.pth")
+
         if results:
             metrics = [(res.num_examples, res.metrics) for _, res in results]
             aggregated_metrics = self.weighted_average(metrics)

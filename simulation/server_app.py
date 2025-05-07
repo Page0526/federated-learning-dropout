@@ -9,7 +9,7 @@ from simulation.strategy import DropoutFedAvg
 from flwr.common import Context
 import torch 
 import lightning as pl
-from typing import Union 
+from typing import Union
 
 
 
@@ -23,9 +23,10 @@ def run_dropout_experiment(
     dropout_pattern: str = "random",
     fixed_clients: Optional[List[int]] = None,
     experiment_name: str = "dropout_experiment",
-    save_results: bool = True,
+    save_dir: str = "model_weights",
     num_gpus : int = 0, 
     resource_config : Optional[Dict[str, float]] = None,
+
 ):
     
       # Configure client app
@@ -35,6 +36,7 @@ def run_dropout_experiment(
 
     # Create strategy with dropout
     strategy = DropoutFedAvg(
+        net=pl_model.model if isinstance(pl_model, pl.LightningModule) else pl_model,
         dropout_rate=dropout_rate,
         dropout_pattern=dropout_pattern,
         fixed_clients=fixed_clients or [],
@@ -43,6 +45,7 @@ def run_dropout_experiment(
         min_fit_clients=1,
         min_evaluate_clients=1,
         min_available_clients=1,
+
     )
 
     # Configure server with strategy
@@ -116,6 +119,10 @@ def run_dropout_experiment(
             "test_recall": test_recall_values
         }
 
+
+       
+
+
         return results, history
     
     except Exception as e:
@@ -123,3 +130,6 @@ def run_dropout_experiment(
         import traceback
         traceback.print_exc()
         return {"error": str(e)}
+    
+
+

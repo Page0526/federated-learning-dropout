@@ -163,7 +163,7 @@ while [[ $# -gt 0 ]]; do
             NUM_CLIENTS="$2"
             shift 2
             ;;
-        -r | --num_rounds)
+        -ro | --num_rounds)
             if [ -z "$2" ]; then
                 echo "Please provide a number of rounds."
                 exit 1
