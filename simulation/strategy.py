@@ -122,7 +122,7 @@ class DropoutFedAvg(FedAvg):
 
 
 
-    def _apply_dropout(self, client_instructions: List[Tuple[ClientProxy, Union[FitIns, EvaluateIns ]]], dropout_patten: str, dropout_rate: 0.3) -> List[Tuple[ClientProxy, FitIns]]:
+    def _apply_dropout(self, client_instructions: List[Tuple[ClientProxy, Union[FitIns, EvaluateIns ]]], dropout_pattern: str, dropout_rate: 0.3) -> List[Tuple[ClientProxy, FitIns]]:
         """Apply dropout to clients based on the specified pattern."""
         if len(client_instructions) == 0:
             return []
@@ -134,7 +134,7 @@ class DropoutFedAvg(FedAvg):
         # Determine which clients will drop out
         dropout_mask = [False] * len(all_clients)
 
-        if dropout_patten == "random":
+        if dropout_pattern == "random":
            
             for i, cid in enumerate(all_client_ids):
                 
@@ -144,14 +144,14 @@ class DropoutFedAvg(FedAvg):
                 if random.random() < dropout_rate:
                     dropout_mask[i] = True
 
-        elif dropout_patten == "alternate":
+        elif dropout_pattern == "alternate":
          
             if self.current_round % 2 == 1:  
                 for i, cid in enumerate(all_client_ids):
                     if cid not in self.fixed_clients:
                         dropout_mask[i] = True
 
-        elif dropout_patten == "fixed":
+        elif dropout_pattern == "fixed":
       
             n_dropout = int(len(all_clients) * dropout_rate)
             for i in range(n_dropout):

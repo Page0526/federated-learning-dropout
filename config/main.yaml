@@ -9,7 +9,7 @@ defaults:
 
 base_path: "/workspaces/federated-learning-dropout"
 device: ${train.device}
-run_name: ${experiment.pattern}_${experiment.name}_${experiment.dropout_rate_training}_${experiment.dropout_rate_eval}
+run_name: ${experiment.name}_${experiment.pattern_train}_${experiment.dropout_rate_training}_${experiment.pattern_eval}_${experiment.dropout_rate_eval}
 seed: 42
 num_clients: 4
 num_rounds: 3
