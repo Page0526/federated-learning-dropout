@@ -23,7 +23,7 @@ from collections import OrderedDict
 class DropoutFedAvg(FedAvg):
     """FedAvg strategy with client dropout simulation and metrics tracking."""
 
-    def __init__( self, net, dropout_rate_training: float = 0.3, dropout_rate_eval: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern: str = "random", **kwargs):
+    def __init__( self, net, dropout_rate_training: float = 0.3, dropout_rate_eval: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern_train: str = "random", dropout_pattern_eval: str = "random", **kwargs):
     
         if "fit_metrics_aggregation_fn" not in kwargs:
             kwargs["fit_metrics_aggregation_fn"] = self.weighted_average
@@ -34,7 +34,8 @@ class DropoutFedAvg(FedAvg):
         self.dropout_rate_training = dropout_rate_training
         self.dropout_rate_eval = dropout_rate_eval
         self.fixed_clients = fixed_clients or []
-        self.dropout_pattern = dropout_pattern
+        self.dropout_pattern_train = dropout_pattern_train
+        self.dropout_pattern_eval = dropout_pattern_eval
         self.current_round = 0
         self.dropped_clients_history_training: Dict[int, List[int]] = {}
         self.dropped_clients_history_evaluation: Dict[int, List[int]] = {}
@@ -79,7 +80,7 @@ class DropoutFedAvg(FedAvg):
             return []
 
 
-        available_clients = self._apply_dropout(client_fit_instructions, dropout_rate=self.dropout_rate_training, dropout_patten=self.dropout_pattern)
+        available_clients = self._apply_dropout(client_fit_instructions, dropout_rate=self.dropout_rate_training, dropout_pattern=self.dropout_pattern_train)
 
         # Save dropout history for this round
         client_ids = [int(client.cid) for client, _ in client_fit_instructions]
@@ -104,7 +105,7 @@ class DropoutFedAvg(FedAvg):
 
         if not client_evaluate_instructions: return []
 
-        available_clients = self._apply_dropout(client_evaluate_instructions, dropout_rate=self.dropout_rate_eval, dropout_patten=self.dropout_pattern)
+        available_clients = self._apply_dropout(client_evaluate_instructions, dropout_rate=self.dropout_rate_eval, dropout_pattern=self.dropout_pattern_eval)
 
         client_ids = [int(client.cid) for client, _ in client_evaluate_instructions]
         available_client_ids = [int(client.cid) for client, _ in available_clients]

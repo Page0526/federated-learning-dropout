@@ -124,9 +124,22 @@ class DenseNetModule(pl.LightningModule):
         # tức model có thể rất tự tin trong quyết định nhưng thực tế lại sai
         # BCE = y*log(y_pred) + (1 - y)*log(1 - y_pred)
         self.criterion = nn.BCEWithLogitsLoss()
-        self.train_loss = MeanMetric()
-        self.val_loss = MeanMetric()
-        self.test_loss = MeanMetric()
+        
+        self.train_accuracy = Accuracy(task="binary", num_classes=1)
+        self.val_accuracy = Accuracy(task="binary", num_classes=1)
+        self.test_accuracy = Accuracy(task="binary", num_classes=1)
+
+
+        self.val_precision = Precision(task="binary", num_classes=1)
+        self.test_precision = Precision(task="binary", num_classes=1)
+
+        self.val_recall = Recall(task="binary", num_classes=1)
+        self.test_recall = Recall(task="binary", num_classes=1)
+
+        self.val_f1 = F1Score(task="binary", num_classes=1)
+        self.test_f1 = F1Score(task="binary", num_classes=1)
+
+    
 
     def forward(self, x):
         return self.model(x)
@@ -137,11 +150,12 @@ class DenseNetModule(pl.LightningModule):
         logits = self(x.unsqueeze(1))
         
         loss = self.criterion(logits, y.float().unsqueeze(1))
-        self.train_loss(loss)
-        acc = ((torch.sigmoid(logits) > 0.5).float() == y.unsqueeze(1)).float().mean()
         
-        self.log('train_loss', self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log('train_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+        acc = self.train_accuracy((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+
+        
+        self.log('train/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('train/acc', acc, on_step=False, on_epoch=True, prog_bar=True)
         
         return loss
 
@@ -150,22 +164,44 @@ class DenseNetModule(pl.LightningModule):
         logits = self(x.unsqueeze(1))
         
         loss = self.criterion(logits, y.float().unsqueeze(1))
-        self.val_loss(loss)
-        acc = ((torch.sigmoid(logits) > 0.5).float() == y.unsqueeze(1)).float().mean()
+        acc = self.val_accuracy((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+        f1 = self.val_f1((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+        precision = self.val_precision((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+        recall = self.val_recall((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
         
-        self.log('val_loss', self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log('val_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/f1', f1, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/precision', precision, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('val/recall', recall, on_step=False, on_epoch=True, prog_bar=True)
+
+        return loss
+
+
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x.unsqueeze(1))
         
         loss = self.criterion(logits, y.float().unsqueeze(1))
-        self.test_loss(loss)
-        acc = ((torch.sigmoid(logits) > 0.5).float() == y.unsqueeze(1)).float().mean()
+        acc = self.test_accuracy((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+        f1 = self.test_f1((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+        precision = self.test_precision((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+        recall = self.test_recall((torch.sigmoid(logits) > 0.5).float(), y.unsqueeze(1))
+
         
-        self.log('test_loss', self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log('test_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+
+
+
+        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('test/acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('test/f1', f1, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('test/precision', precision, on_step=False, on_epoch=True, prog_bar=True)
+        self.log('test/recall', recall, on_step=False, on_epoch=True, prog_bar=True)
+        return loss
+
+
+
 
     def configure_optimizers(self):
         optimizer =  torch.optim.AdamW(self.parameters(), lr=self.learning_rate, weight_decay = self.weight_decay)

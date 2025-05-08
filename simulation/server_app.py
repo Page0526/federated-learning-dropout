@@ -21,7 +21,8 @@ def run_dropout_experiment(
     num_rounds: int = 5,
     dropout_rate_training: float = 0.3,
     dropout_rate_eval: float = 0.3,
-    dropout_pattern: str = "random",
+    dropout_pattern_train: str = "random",
+    dropout_pattern_eval: str = "random",
     fixed_clients: Optional[List[int]] = None,
     experiment_name: str = "dropout_experiment",
     save_dir: str = "model_weights",
@@ -32,8 +33,8 @@ def run_dropout_experiment(
     
       # Configure client app
     print(f"\nStarting experiment: {experiment_name}")
-    print(f"Dropout rate training: {dropout_rate_training}, Pattern: {dropout_pattern}")
-    print(f"Dropout rate evaluation: {dropout_rate_eval}, Pattern: {dropout_pattern}")
+    print(f"Dropout rate training: {dropout_rate_training}, Pattern: {dropout_pattern_train}")
+    print(f"Dropout rate evaluation: {dropout_rate_eval}, Pattern: {dropout_pattern_eval   }")
     print(f"Number of GPUs: {num_gpus}")
     print(f"Number of clients: {num_clients}")
     print(f"Number of rounds: {num_rounds}")
@@ -44,7 +45,8 @@ def run_dropout_experiment(
         net=pl_model.model if isinstance(pl_model, pl.LightningModule) else pl_model,
         dropout_rate_training=dropout_rate_training,
         dropout_rate_eval=dropout_rate_eval,
-        dropout_pattern=dropout_pattern,
+        dropout_pattern_train=dropout_pattern_train,
+        dropout_pattern_eval=dropout_pattern_eval,
         fixed_clients=fixed_clients or [],
         fraction_fit=1.0,
         fraction_evaluate=1.0,

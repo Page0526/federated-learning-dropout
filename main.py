@@ -91,7 +91,8 @@ def run_experiment(cfg: DictConfig) -> None:
         num_rounds=cfg.num_rounds,
         dropout_rate_eval=cfg.experiment.dropout_rate_eval,
         dropout_rate_training=cfg.experiment.dropout_rate_training,
-        dropout_pattern=cfg.experiment.pattern,
+        dropout_pattern_train=cfg.experiment.pattern_train,
+        dropout_pattern_eval=cfg.experiment.pattern_eval,
         experiment_name=cfg.experiment.name,
         num_gpus=cfg.gpus,
         resource_config=resources
@@ -209,7 +210,9 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
         dropout_rate_training=cfg.experiment.dropout_rate_training,
         dropout_rate_eval=cfg.experiment.dropout_rate_eval,
 
-        dropout_pattern=cfg.experiment.pattern,
+        dropout_pattern_train=cfg.experiment.pattern_train,
+        dropout_pattern_eval=cfg.experiment.pattern_eval,
+        
         experiment_name=cfg.experiment.name,
         num_gpus=cfg.gpus,
         resource_config=resources
