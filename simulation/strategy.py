@@ -7,6 +7,7 @@ from flwr.common import (
     FitIns,
     FitRes,
     Parameters,
+    EvaluateIns,
 )
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.client_manager import ClientManager
@@ -22,7 +23,7 @@ from collections import OrderedDict
 class DropoutFedAvg(FedAvg):
     """FedAvg strategy with client dropout simulation and metrics tracking."""
 
-    def __init__( self, net, dropout_rate: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern: str = "random", **kwargs):
+    def __init__( self, net, dropout_rate_training: float = 0.3, dropout_rate_eval: float = 0.3, fixed_clients: Optional[List[int]] = None, dropout_pattern: str = "random", **kwargs):
     
         if "fit_metrics_aggregation_fn" not in kwargs:
             kwargs["fit_metrics_aggregation_fn"] = self.weighted_average
@@ -30,11 +31,13 @@ class DropoutFedAvg(FedAvg):
             kwargs["evaluate_metrics_aggregation_fn"] = self.weighted_average
 
         super().__init__(**kwargs)
-        self.dropout_rate = dropout_rate
+        self.dropout_rate_training = dropout_rate_training
+        self.dropout_rate_eval = dropout_rate_eval
         self.fixed_clients = fixed_clients or []
         self.dropout_pattern = dropout_pattern
         self.current_round = 0
-        self.dropped_clients_history: Dict[int, List[int]] = {}
+        self.dropped_clients_history_training: Dict[int, List[int]] = {}
+        self.dropped_clients_history_evaluation: Dict[int, List[int]] = {}
 
         # For tracking metrics
         self.fit_metrics_history: List[Dict[str, float]] = []
@@ -76,15 +79,15 @@ class DropoutFedAvg(FedAvg):
             return []
 
 
-        available_clients = self._apply_dropout(client_fit_instructions)
+        available_clients = self._apply_dropout(client_fit_instructions, dropout_rate=self.dropout_rate_training, dropout_patten=self.dropout_pattern)
 
         # Save dropout history for this round
         client_ids = [int(client.cid) for client, _ in client_fit_instructions]
         available_client_ids = [int(client.cid) for client, _ in available_clients]
         dropped_clients = [cid for cid in client_ids if cid not in available_client_ids]
-        self.dropped_clients_history[server_round] = dropped_clients
+        self.dropped_clients_history_training[server_round] = dropped_clients
 
-        print(f"Round {server_round}: {len(dropped_clients)} clients dropped out of {len(client_ids)}")
+        print(f"Round {server_round}: {len(dropped_clients)} clients dropped out of {len(client_ids)} during training")
         print(f"Dropped client IDs: {dropped_clients}")
 
         return available_clients
@@ -92,13 +95,33 @@ class DropoutFedAvg(FedAvg):
 
 
 
-    # def configure_evaluate(self): 
-    #     pass 
+    def configure_evaluate( self, server_round: int, parameters: Parameters, client_manager: ClientManager) -> List[Tuple[ClientProxy, EvaluateIns]]:
+        self.current_round = server_round
+
+        client_evaluate_instructions = super().configure_evaluate(
+            server_round, parameters, client_manager
+        )
+
+        if not client_evaluate_instructions: return []
+
+        available_clients = self._apply_dropout(client_evaluate_instructions, dropout_rate=self.dropout_rate_eval, dropout_patten=self.dropout_pattern)
+
+        client_ids = [int(client.cid) for client, _ in client_evaluate_instructions]
+        available_client_ids = [int(client.cid) for client, _ in available_clients]
+        dropped_clients = [cid for cid in client_ids if cid not in available_client_ids]
+
+        self.dropped_clients_history_evaluation[server_round] = dropped_clients
+        
+
+        print(f"Round {server_round}: {len(dropped_clients)} clients dropped out of {len(client_ids)} during evaluation")
+        print(f"Dropped client IDs: {dropped_clients}")
+
+        return available_clients
 
 
 
 
-    def _apply_dropout( self, client_instructions: List[Tuple[ClientProxy, FitIns]]) -> List[Tuple[ClientProxy, FitIns]]:
+    def _apply_dropout(self, client_instructions: List[Tuple[ClientProxy, Union[FitIns, EvaluateIns ]]], dropout_patten: str, dropout_rate: 0.3) -> List[Tuple[ClientProxy, FitIns]]:
         """Apply dropout to clients based on the specified pattern."""
         if len(client_instructions) == 0:
             return []
@@ -110,26 +133,26 @@ class DropoutFedAvg(FedAvg):
         # Determine which clients will drop out
         dropout_mask = [False] * len(all_clients)
 
-        if self.dropout_pattern == "random":
+        if dropout_patten == "random":
            
             for i, cid in enumerate(all_client_ids):
                 
                 if cid in self.fixed_clients:
                     continue
             
-                if random.random() < self.dropout_rate:
+                if random.random() < dropout_rate:
                     dropout_mask[i] = True
 
-        elif self.dropout_pattern == "alternate":
+        elif dropout_patten == "alternate":
          
             if self.current_round % 2 == 1:  
                 for i, cid in enumerate(all_client_ids):
                     if cid not in self.fixed_clients:
                         dropout_mask[i] = True
 
-        elif self.dropout_pattern == "fixed":
+        elif dropout_patten == "fixed":
       
-            n_dropout = int(len(all_clients) * self.dropout_rate)
+            n_dropout = int(len(all_clients) * dropout_rate)
             for i in range(n_dropout):
                 if all_client_ids[i] not in self.fixed_clients:
                     dropout_mask[i] = True
@@ -143,7 +166,7 @@ class DropoutFedAvg(FedAvg):
         return available_clients
 
     def aggregate_fit(self, server_round: int, results: List[Tuple[ClientProxy, FitRes]], failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]]):
-        """Aggregate fit results and store metrics."""
+    
         aggregated = super().aggregate_fit(server_round, results, failures)
 
         if aggregated and aggregated[0] is not None:
@@ -168,6 +191,7 @@ class DropoutFedAvg(FedAvg):
         return aggregated
 
     def aggregate_evaluate( self, server_round: int, results: List[Tuple[ClientProxy, EvaluateRes]],  failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]]):
+        
         aggregated = super().aggregate_evaluate(server_round, results, failures)
 
         if results:
@@ -180,7 +204,7 @@ class DropoutFedAvg(FedAvg):
         return aggregated
 
     def get_dropout_history(self) -> Dict[int, List[int]]:
-        return self.dropped_clients_history
+        return self.dropped_clients_history_training, self.dropped_clients_history_evaluation
 
-    def get_metrics_history(self) -> Tuple[List[Dict[str, float]], List[Dict[str, float]]]:
+    def get_metrics_history(self) -> Tuple[List[Dict[str, float]], List[Dict[str, float]]]: 
         return self.fit_metrics_history, self.eval_metrics_history

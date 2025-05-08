@@ -1,5 +1,6 @@
 pattern: "fixed"
-dropout_rate: 0.3
+dropout_rate_training: 0.3
+droput_rate_eval : 0.3
 fixed_clients:
   - 0
   - 1

@@ -1,4 +1,5 @@
 pattern: "alternate"
-dropout_rate: 0.5  # Not actually used with alternate pattern
+dropout_rate_training: 0.5  
+dropout_rate_eval: 0.5
 fixed_clients: []
 name: "alternate_dropout"

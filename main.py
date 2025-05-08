@@ -88,7 +88,8 @@ def run_experiment(cfg: DictConfig) -> None:
         model=model,
         num_clients=cfg.num_clients,
         num_rounds=cfg.num_rounds,
-        dropout_rate=cfg.experiment.dropout_rate,
+        dropout_rate_eval=cfg.experiment.dropout_rate_eval,
+        dropout_rate_training=cfg.experiment.dropout_rate_training,
         dropout_pattern=cfg.experiment.pattern,
         experiment_name=cfg.experiment.name,
         num_gpus=cfg.gpus,
@@ -104,19 +105,29 @@ def run_experiment(cfg: DictConfig) -> None:
             "loss": results["loss"][idx], 
         })
 
-
- 
     # Log dropout history
-    for round_idx, dropped in history.items():
+    for round_idx, dropped in history[0].items():
         wandb.log({
-            "round": round_idx,
-            "dropped_clients_count": len(dropped),
+            "dropped_clients_train_count": len(dropped),
             "dropped_clients": wandb.Table(
                 columns=["client_id"],
                 data=[[client_id] for client_id in dropped]
             )
         })
+
+    for round_idx, dropped in history[1].items():
+        wandb.log({
+            "dropped_clients_eval_count": len(dropped),
+            "dropped_clients": wandb.Table(
+                columns=["client_id"],
+                data=[[client_id] for client_id in dropped]
+            )
+        })
+
     
+    
+
+
     wandb.finish()
 
 
@@ -185,7 +196,9 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
         pl_model=pl_model,
         num_clients=cfg.num_clients,
         num_rounds=cfg.num_rounds,
-        dropout_rate=cfg.experiment.dropout_rate,
+        dropout_rate_training=cfg.experiment.dropout_rate_training,
+        dropout_rate_eval=cfg.experiment.dropout_rate_eval,
+
         dropout_pattern=cfg.experiment.pattern,
         experiment_name=cfg.experiment.name,
         num_gpus=cfg.gpus,
@@ -198,26 +211,35 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
     for idx in range(len(results["rounds"])):
         wandb.log({
             "round": idx,
-            "train_accuracy": results["train_accuracy"][idx],
-            "train_loss": results["train_loss"][idx],
-            "test_accuracy": results["test_accuracy"][idx],
-            "test_loss": results["test_loss"][idx],
-            "test_f1": results["test_f1"][idx],
-            "test_precision": results["test_precision"][idx],
-            "test_recall": results["test_recall"][idx],
+            "train_accuracy": results["train_accuracy"][-1] if idx > len(results["train_accuracy"]) - 1 else results["train_accuracy"][idx],
+            "train_loss": results["train_loss"][-1] if idx > len(results["train_loss"]) - 1 else results["train_loss"][idx],
+            "test_accuracy": results["test_accuracy"][-1] if idx > len(results["test_accuracy"]) - 1 else results["test_accuracy"][idx],
+            "test_loss": results["test_loss"][-1] if idx > len(results["test_loss"]) - 1 else results["test_loss"][idx],
+            "test_f1": results["test_f1"][-1] if idx > len(results["test_f1"]) - 1 else results["test_f1"][idx],
+            "test_precision": results["test_precision"][-1] if idx > len(results["test_precision"]) - 1 else results["test_precision"][idx],
+            "test_recall": results["test_recall"][-1] if idx > len(results["test_recall"]) - 1 else results["test_recall"][idx],
         })
 
 
     # Log dropout history
-    for round_idx, dropped in history.items():
+    for round_idx, dropped in history[0].items():
         wandb.log({
-            "round": round_idx,
-            "dropped_clients_count": len(dropped),
+            "dropped_clients_train_count": len(dropped),
             "dropped_clients": wandb.Table(
                 columns=["client_id"],
                 data=[[client_id] for client_id in dropped]
             )
         })
+
+    for round_idx, dropped in history[1].items(): 
+        wandb.log({
+            "dropped_clients_eval_count": len(dropped),
+            "dropped_clients": wandb.Table(
+                columns=["client_id"],
+                data=[[client_id] for client_id in dropped]
+            )
+        })
+
 
 
 

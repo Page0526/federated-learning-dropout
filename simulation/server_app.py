@@ -19,7 +19,8 @@ def run_dropout_experiment(
     pl_model : Union[pl.LightningModule, torch.nn.Module], 
     num_clients: int,
     num_rounds: int = 5,
-    dropout_rate: float = 0.3,
+    dropout_rate_training: float = 0.3,
+    dropout_rate_eval: float = 0.3,
     dropout_pattern: str = "random",
     fixed_clients: Optional[List[int]] = None,
     experiment_name: str = "dropout_experiment",
@@ -31,13 +32,18 @@ def run_dropout_experiment(
     
       # Configure client app
     print(f"\nStarting experiment: {experiment_name}")
-    print(f"Dropout rate: {dropout_rate}, Pattern: {dropout_pattern}")
+    print(f"Dropout rate training: {dropout_rate_training}, Pattern: {dropout_pattern}")
+    print(f"Dropout rate evaluation: {dropout_rate_eval}, Pattern: {dropout_pattern}")
+    print(f"Number of GPUs: {num_gpus}")
+    print(f"Number of clients: {num_clients}")
+    print(f"Number of rounds: {num_rounds}")
     print(f"Fixed clients: {fixed_clients or []}")
 
     # Create strategy with dropout
     strategy = DropoutFedAvg(
         net=pl_model.model if isinstance(pl_model, pl.LightningModule) else pl_model,
-        dropout_rate=dropout_rate,
+        dropout_rate_training=dropout_rate_training,
+        dropout_rate_eval=dropout_rate_eval,
         dropout_pattern=dropout_pattern,
         fixed_clients=fixed_clients or [],
         fraction_fit=1.0,
@@ -89,7 +95,6 @@ def run_dropout_experiment(
 
         # Get metrics directly from strategy
         fit_metrics, eval_metrics = strategy.get_metrics_history()
-        dropout_history = strategy.get_dropout_history()
 
         # Format metrics for plotting
         rounds = list(range(1, len(eval_metrics) + 1))
