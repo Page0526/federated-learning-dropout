@@ -1,12 +1,14 @@
-import torch.nn as nn
-import torch
+import torch.nn as nn 
+import torch 
 import torch.nn.functional as F
 from collections import OrderedDict
 from typing import List, Tuple
+from torchsummary import summary
+
+
 
 
 class _DenseLayer(nn.Sequential):
-
     def __init__(self, num_input_features, growth_rate, bn_size, drop_rate):
         super().__init__()
         self.add_module('norm1', nn.BatchNorm3d(num_input_features))
@@ -38,20 +40,15 @@ class _DenseLayer(nn.Sequential):
                                      training=self.training)
         return torch.cat([x, new_features], 1)
 
-
 class _DenseBlock(nn.Sequential):
-
-    def __init__(self, num_layers, num_input_features, bn_size, growth_rate,
-                 drop_rate):
+    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate):
         super().__init__()
         for i in range(num_layers):
             layer = _DenseLayer(num_input_features + i * growth_rate,
                                 growth_rate, bn_size, drop_rate)
             self.add_module('denselayer{}'.format(i + 1), layer)
 
-
 class _Transition(nn.Sequential):
-
     def __init__(self, num_input_features, num_output_features):
         super().__init__()
         self.add_module('norm', nn.BatchNorm3d(num_input_features))
@@ -65,34 +62,18 @@ class _Transition(nn.Sequential):
                       bias=False))
         self.add_module('pool', nn.AvgPool3d(kernel_size=2, stride=2))
 
-
 class DenseNet(nn.Module):
-    
-    """
-    Densenet-BC model class
-    
-    Args:
-        growth_rate (int) - how many filters to add each layer (k in paper)
-        block_config (list of 4 ints) - how many layers in each pooling block
-        num_init_features (int) - the number of filters to learn in the first convolution layer
-        bn_size (int) - multiplicative factor for number of bottle neck layers
-          (i.e. bn_size * k features in the bottleneck layer)
-        drop_rate (float) - dropout rate after each dense layer
-        num_classes (int) - number of classification classes
-    """
-
     def __init__(self,
                  n_input_channels=1,
                  conv1_t_size=7,
                  conv1_t_stride=1,
                  no_max_pool=False,
-                 growth_rate=32,
-                 block_config=(6, 12, 24, 16),
-                 num_init_features=64,
+                 growth_rate=16,
+                 block_config=(4, 8, 16, 12),
+                 num_init_features=32,
                  bn_size=4,
                  drop_rate=0,
                  num_classes=1):
-
         super().__init__()
 
         # First convolution
@@ -129,21 +110,13 @@ class DenseNet(nn.Module):
         # Final batch norm
         self.features.add_module('norm5', nn.BatchNorm3d(num_features))
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv3d):
-                m.weight = nn.init.kaiming_normal(m.weight, mode='fan_out')
-            elif isinstance(m, nn.BatchNorm3d) or isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-
         # Linear layer
         self.classifier = nn.Linear(num_features, num_classes)
 
+        # Khởi tạo trọng số
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
-                nn.init.kaiming_normal_(m.weight,
-                                        mode='fan_out',
-                                        nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm3d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -153,9 +126,13 @@ class DenseNet(nn.Module):
     def forward(self, x):
         features = self.features(x)
         out = F.relu(features, inplace=True)
-        out = F.adaptive_avg_pool3d(out,
-                                    output_size=(1, 1,
-                                                 1)).view(features.size(0), -1)
+        out = F.adaptive_avg_pool3d(out, output_size=(1, 1, 1)).view(features.size(0), -1)
         out = self.classifier(out)
         return out
- 
+    
+
+
+if __name__ == "__main__":
+    model = DenseNet()
+    print(model)
+    summary(model, (130, 130, 130), device="cpu")

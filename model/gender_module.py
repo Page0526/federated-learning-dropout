@@ -114,11 +114,12 @@ class BrainMRILightningModule(pl.LightningModule):
 
 
 class DenseNetModule(pl.LightningModule):
-    def __init__(self, model, lr=1e-3, weight_decay = 1e-2):
+    def __init__(self, net, learning_rate=1e-3, weight_decay = 1e-2, batch_size = 32):
         super().__init__()
-        self.model = model
-        self.lr = lr
+        self.model = net
+        self.learning_rate = learning_rate
         self.weight_decay = weight_decay
+        self.batch_size = batch_size
         # how confidence model is in it prediction
         # tức model có thể rất tự tin trong quyết định nhưng thực tế lại sai
         # BCE = y*log(y_pred) + (1 - y)*log(1 - y_pred)
@@ -167,7 +168,7 @@ class DenseNetModule(pl.LightningModule):
         self.log('test_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer =  torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay = self.weight_decay)
+        optimizer =  torch.optim.AdamW(self.parameters(), lr=self.learning_rate, weight_decay = self.weight_decay)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma = 0.95)
 
         return {

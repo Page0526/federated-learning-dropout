@@ -32,7 +32,7 @@ def iid_client_split(dataset, num_client = 3,  val_ratio = 0.2):
 
 
 
-def same_distribution_client_split(dataset, num_client, val_ratio = 0.2, overlap_ratio = 0.2, root_dir = ROOT_PATH):
+def same_distribution_client_split(dataset, num_client, val_ratio = 0.2, overlap_ratio = 0.2, root_dir = ROOT_PATH, is_3d = False):
     """
     Split the dataset into clients with the same distribution of labels.
     """
@@ -42,7 +42,7 @@ def same_distribution_client_split(dataset, num_client, val_ratio = 0.2, overlap
 
     client_datasets = distributed_data_to_clients(labels_df, num_clients=num_client, overlap_ratio=overlap_ratio)
 
-    client_datasets = create_train_test(client_datasets, val_ratio=val_ratio, root_dir=root_dir)
+    client_datasets = create_train_test(client_datasets, val_ratio=val_ratio, root_dir=root_dir, is_3d = is_3d)
 
     return client_datasets
 

@@ -5,13 +5,15 @@ import numpy as np
 import pandas as pd
 import torch
 import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader
 
 
 class MRIDataset(Dataset) :
 
-    def __init__(self, root_dir: str, label_path: str = None, transform = None, label_df: pd.DataFrame = None ):
+    def __init__(self, root_dir: str, label_path: str = None, transform = None, label_df: pd.DataFrame = None, is_3d: bool = False):
         self.root_dir = Path(root_dir)
         self.transform = transform
+        self.is_3d = is_3d
         if label_df is None:
           self.labels_df = pd.read_csv(label_path)
           
@@ -82,7 +84,10 @@ class MRIDataset(Dataset) :
         label = 0
         if metadata['subject_sex'] == 'm' : label = 1
 
-        return self.preprocessing_datapoint(img_data),  label
+        if not self.is_3d:
+            img_data = self.preprocessing_datapoint(img_data)
+
+        return img_data,  label
 
 
 
@@ -122,7 +127,7 @@ if __name__ == "__main__":
     def test_dataset(): 
         print("Testing MRIDataset...")
 
-        dataset = MRIDataset(root_dir="../dataset/not_skull_stripped", label_path="../dataset/label.csv")
+        dataset = MRIDataset(root_dir="../dataset/not_skull_stripped", label_path="../dataset/label.csv", is_3d = True)
         print(f"Number of samples: {len(dataset)}")
 
         for i in range(5):
@@ -130,5 +135,12 @@ if __name__ == "__main__":
             print(f"Sample {i}: Image shape: {img.shape}, Label: {label}")
         print("Test completed.")
 
+        trainloader = DataLoader(dataset, batch_size = 16, shuffle=True)
+
+        for i, data in enumerate(trainloader):
+            inputs, labels = data
+            print(f"Batch {i}: Inputs shape: {inputs.shape}, Labels shape: {labels.shape}")
+            if i == 1:
+                break
 
     test_dataset()

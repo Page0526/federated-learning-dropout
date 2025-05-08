@@ -1,5 +1,8 @@
 pattern: "alternate"
 dropout_rate_training: 0.5  
 dropout_rate_eval: 0.5
-fixed_clients: []
+fixed_clients: 
+  - 0
+  - 1
+  - 2
 name: "alternate_dropout"

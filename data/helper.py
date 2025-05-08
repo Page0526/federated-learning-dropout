@@ -58,11 +58,11 @@ def sampling_data(data, size, random_state ):
   return samples
 
 
-def create_train_test(sample_labels: list, val_ratio: float = 0.2, root_dir: str = ROOT_PATH):
+def create_train_test(sample_labels: list, val_ratio: float = 0.2, root_dir: str = ROOT_PATH, is_3d: bool = False):
 
   client_datasets = []
   for label_df in sample_labels:
-    dataset = MRIDataset(root_dir=root_dir, label_df = label_df)
+    dataset = MRIDataset(root_dir=root_dir, label_df = label_df, is_3d = is_3d)
     
     train_dataset, val_dataset = random_split(dataset, [1 - val_ratio, val_ratio])
     client_datasets.append((train_dataset, val_dataset))

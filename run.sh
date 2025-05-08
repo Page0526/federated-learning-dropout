@@ -13,6 +13,10 @@ run_single_experiment() {
         cmd="$cmd base_path=$BASE_PATH"
     fi
     
+    if [ -n "$DATA" ]; then
+        cmd="$cmd data=$DATA"
+    fi
+
     # Add data_path override if specified
     if [ -n "$ROOT_DATA_PATH" ]; then
         cmd="$cmd data.root_path=$ROOT_DATA_PATH"
@@ -55,6 +59,10 @@ run_all_experiments() {
     # Add base_path override if specified
     if [ -n "$BASE_PATH" ]; then
         cmd="$cmd base_path=$BASE_PATH"
+    fi
+
+    if [ -n "$DATA" ]; then
+        cmd="$cmd data=$DATA"
     fi
     
     # Add data_path overrides if specified
@@ -169,6 +177,15 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ROUND="$2"
+            shift 2
+            ;;
+
+        -d | --data)
+            if [ -z "$2" ]; then
+                echo "Please provide a data path."
+                exit 1
+            fi
+            DATA="$2"
             shift 2
             ;;
 

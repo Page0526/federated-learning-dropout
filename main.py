@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import os 
 import warnings
 import lightning as pl 
+from model.gender_module import BrainMRILightningModule, DenseNetModule
 
 
 warnings.filterwarnings('ignore')
@@ -157,8 +158,18 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
     device = cfg.device
     epochs = cfg.train.epochs 
 
+    logger.info("Loading model")
+    net : nn.Module = hydra.utils.instantiate(cfg.model.net)
+    pl_model : pl.LightningModule = hydra.utils.instantiate(cfg.model, net=net, learning_rate=cfg.train.learning_rate, weight_decay=cfg.train.weight_decay, batch_size=cfg.train.batch_size)
+
+    
     logger.info("Loading dataset")
-    full_dataset = MRIDataset(root_dir=cfg.data.root_path, label_path=cfg.data.label_path)
+    is_3d = True if isinstance(pl_model, DenseNetModule) else False
+    print(f"Is 3D: {is_3d}")
+        
+    
+    full_dataset = MRIDataset(root_dir=cfg.data.root_path, label_path=cfg.data.label_path, is_3d=is_3d)
+
     logger.info(f"Dataset loaded successfully with len is {len(full_dataset)}")
     logger.info(f"Splitting dataset into {cfg.num_clients} clients")
 
@@ -170,7 +181,8 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
             num_client=cfg.num_clients, 
             val_ratio=cfg.data.val_ratio, 
             overlap_ratio=cfg.data.overlap_ratio,
-            root_dir=cfg.data.root_path
+            root_dir=cfg.data.root_path, 
+            is_3d=is_3d
         )
     else: 
         raise ValueError(f"Unknown distribution type: {cfg.data.distribution}")
@@ -188,9 +200,7 @@ def run_experiment_with_lightning(cfg: DictConfig) -> None:
 
     logger.info("Running experiments with PyTorch Lightning")
 
-    net : nn.Module = hydra.utils.instantiate(cfg.model.net)
-    pl_model : pl.LightningModule = hydra.utils.instantiate(cfg.model, net=net, learning_rate=cfg.train.learning_rate, weight_decay=cfg.train.weight_decay, batch_size=cfg.train.batch_size)
-
+   
     results, history = run_dropout_experiment(
         client_fn_creator=create_lightning_client_fn,
         pl_model=pl_model,

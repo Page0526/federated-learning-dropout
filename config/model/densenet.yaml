@@ -1,9 +1,8 @@
 _target_: model.gender_module.DenseNetModule
 
-model: 
+net: 
   _target_: model.component.densenet.DenseNet
-  num_init_features: 32
-  growth_rate: 16
-  block_config: (4, 8, 16, 12)
+
+
 
 
