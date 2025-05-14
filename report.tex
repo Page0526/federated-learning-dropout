@@ -1,0 +1,498 @@
+\documentclass[12pt, a4paper]{article}
+
+
+% A pretty common set of packages
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese,UKenglish]{babel}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{engord}
+\usepackage{adjustbox}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{float}
+\pagestyle{fancy}
+\usepackage[UKenglish]{isodate}
+\usepackage[skip=2pt,font=footnotesize,justification=centering]{caption}
+\usepackage{natbib}
+\usepackage[colorlinks=true, 
+    linkcolor=blue,          
+    citecolor=blue,        
+    filecolor=blue,     
+    urlcolor=blue]{hyperref}
+
+
+\usepackage{subcaption}
+
+
+% Do you prefer Sans Serif fonts?
+%\usepackage{sfmath}
+%\renewcommand{\familydefault}{\sfdefault} 
+
+
+
+
+% Make some additional useful commands
+\newcommand{\ie}{\emph{i.e.}\ }
+\newcommand{\eg}{\emph{e.g.}\ }
+\newcommand{\etal}{\emph{et al}}
+\newcommand{\sub}[1]{$_{\textrm{#1}}$}
+\newcommand{\super}[1]{$^{\textrm{#1}}$}
+\newcommand{\degC}{$^{\circ}$C}
+\newcommand{\wig}{$\sim$}
+\newcommand{\ord}[1]{\engordnumber{#1}}
+\newcommand{\num}[2]{$#1\,$#2}
+\newcommand{\range}[3]{$#1$-$#2\,$#3}
+\newcommand{\roughly}[2]{$\sim\!#1\,$#2}
+\newcommand{\area}[3]{$#1 \! \times \! #2\,$#3}
+\newcommand{\vol}[4]{$#1 \! \times \! #2 \! \times \! #3\,$#4}
+\newcommand{\cube}[1]{$#1 \! \times \! #1 \! \times \! #1$}
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+\newcommand{\eqnref}[1]{Equation~\ref{#1}}
+\newcommand{\tableref}[1]{Table~\ref{#1}}
+\newcommand{\secref}[1]{Section \ref{#1}}
+\newcommand{\XC}{\emph{exchange-correlation}}
+\newcommand{\abinit}{\emph{ab initio}}
+\newcommand{\Abinit}{\emph{Ab initio}}
+\newcommand{\Lonetwo}{L1$_{2}$}
+\newcommand{\Dznt}{D0$_{19}$}
+\newcommand{\Dtf}{D8$_{5}$}
+\newcommand{\Btwo}{B$_{2}$}
+\newcommand{\fcc}{\emph{fcc}}
+\newcommand{\hcp}{\emph{hcp}}
+\newcommand{\bcc}{\emph{bcc}}
+\newcommand{\Ang}{{\AA}}
+\newcommand{\inverseAng}{{\AA}$^{-1}$}
+%\newcommand{\comment}[1]{}
+\newcommand{\comment}[1]{\textcolor{red}{[COMMENT: #1]}}
+\newcommand{\more}{\textcolor{red}{[MORE]}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+
+
+
+
+% Change this to modify look of header and footer
+\lhead{}
+\chead{}
+\rhead{}
+\lfoot{}
+\cfoot{\thepage{}}
+\rfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+
+
+\begin{document}
+
+\onehalfspacing
+
+
+Date: \today{}     \hfill{} Project supervisor: \\
+IAI-VNU-UET   \hfill{} Dr Alessandro Mottura
+
+{\LARGE Progress Report A2: Effects of Client Dropout and Unstable Participation in Federated MRI Modeling}
+
+{\Large  Group 5}
+
+\vspace{0.4in}
+
+
+\singlespacing
+\tableofcontents
+
+
+
+\onehalfspacing
+
+
+\section{Introduction}
+Federated Learning is a highly promising distributed machine learning approach that allows multiple organizations, such as hospitals, to collaboratively train a model without sharing their raw data, thereby ensuring data privacy and sensitivity. However, in practical deployment, client disconnections caused by network issues, resource limitations, or system errors significantly affect model performance and convergence of the global model. This project aims to investigate the effects of client dropout and evaluate several algorithms designed to mitigate its impact through the implementation of a gender classification model based on brain MRI images.
+
+During the course of the project, we simulated dropout scenarios and trained deep learning models to replicate realistic dropout conditions during federated learning. The results show that when data is distributed identically across clients, client dropout does not significantly affect performance if the dropout rate per round is relatively low. However, with a high dropout rate, the model tends to overfit in certain configurations. In cases where data distributions differ across clients, we partitioned the dataset based on age groups using fixed age bins and assigned subsets to clients such that each client predominantly accessed samples from a limited set of age bins, thereby simulating non-IID data distributions. An adjustable overlap parameter was introduced to control the degree of bin sharing among clients, allowing us to vary the statistical heterogeneity across the clients throughout the experimental process. In parallel, we have studied and surveyed mitigation techniques such as <AI VIET DI NHE>.
+
+
+
+\section{Literature review}
+
+
+\subsection{Related Concepts}
+
+In this section, we describe the key concepts involved in our problem:
+
+\textbf{Federated Learning}: is a decentralized machine learning technique in which data is not aggregated and trained on a central server. Instead, each client trains the model on its local dataset, which is only visible to that client. The locally trained parameters are then aggregated on a central server using a specific algorithm.
+
+\textbf{Client Dropout}: refers to the phenomenon where certain clients are unable to participate in training or fail to upload their model updates to the server after evaluation.
+
+\subsection{Recent Research}
+
+\section{Methodology}
+
+Based on the given problem, we divide the research into two main parts:
+
+\begin{enumerate}
+    \item Analyze the impact of client dropout during federated learning training.
+    \item Implement mitigation algorithms to reduce the consequences of client dropout and evaluate their effectiveness.
+\end{enumerate}
+
+\subsection{Dataset Overview}
+
+The provided dataset consists of 10,276 3D MRI scans with dimensions of (130, 130, 130). The corresponding labels include fields such as gender (subject\_sex), age (subject\_age), and diagnosis status (subject\_dx). We filtered the data by diagnosis status (subject\_dx) and selected 4,079 MRI scans from subjects without any diagnosed medical conditions.
+
+\subsection{Impact of Client Dropout in Federated Learning Training}
+To simulate the client dropout phenomenon during federated learning training, we chose the task of gender classification based on MRI images. We designed various dropout scenarios based on the following factors: different data distributions among clients, dropout strategies (random, fixed, or rotational removal), dropout rates per round (30–70\%), and whether dropout occurs when clients send updates to the server or when the server sends updates back to clients.
+
+\textbf{Method for sampling data with identical distributions among clients:} Based on the available labels, we grouped the ages into 5 categories using the quantile method (labeled from 0 to 4). Combined with gender, each image was assigned a label in the format (0\_M), where 0 represents the age group and M represents gender. While sampling data, we introduced an additional parameter called the overlap ratio to control data redundancy among clients. The data sampling process for each client is as follows \ref{fig:same_distribution}:
+
+\begin{enumerate}
+    \item Determine the number of samples per client (taking into account the overlap ratio), and divide them into two parts: one overlapping with previously created clients and one non-overlapping part.
+
+    \item For the first client, data is sampled randomly. From the second client onwards, the overlapping portion is sampled from the label distribution of previous clients (ensuring identical label frequency distribution), while the non-overlapping part is sampled from the remaining unused data.
+
+    \item If the last client does not meet the required number of samples, additional samples are randomly selected from previous clients to ensure all clients have the same amount of data.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{research-project/figures/same_distribution.png}
+    \caption{The data distribution of clients after being partitioned using the identical distribution method (illustrated on a small subset of the dataset, not the full dataset).}
+    \label{fig:same_distribution}
+\end{figure}
+
+\textbf{Client dropout strategies:} We define three strategies for client dropout in each training round as follows:
+
+\begin{itemize}
+    \item \textbf{Random:} Randomly select a number of clients (less than a predefined threshold, e.g., 30\% or 70\% of the total number of clients) and drop them in each round.
+
+    \item \textbf{Fixed:} Drop a predefined fixed set of clients (the dropout decision is randomized across different rounds).
+\end{itemize}
+
+\textbf{Method for sampling data with non-identical distributions among clients:}
+To simulate realistic and heterogeneous data scenarios in federated learning, we implemented a non-IID data partitioning method based on age distributions. Specifically, the available samples were grouped into discrete age bins (e.g., 0–10, 10–20, ..., 90–100). Each bin serves as a thematic pool of samples representing a certain age range. The global dataset was thus represented as a mapping from age bin identifiers to corresponding sets of sample indices.
+
+During client sampling, each client is assigned a subset of these bins in a semi-random manner that controls the degree of overlap between clients using an \textit{overlap ratio} parameter. The sampling process for each client proceeds as follows :
+
+\begin{enumerate}
+    \item The total number of valid samples is divided equally among the clients to determine the target number of samples per client.
+    \item For each client, a fixed number of age bins are selected based on the overlap ratio, ensuring that bins can be reused across clients but the combinations vary. The selected bins are shuffled and used to draw samples until the required number of samples for that client is reached.
+    \item Once samples are drawn for a client, they are removed from the corresponding bins in the global pool, reducing the likelihood of reuse and introducing non-identical sample sets among clients.
+    \item If no more unused bins are available during sampling, the remaining required samples are selected from the residual global pool to ensure the client has sufficient data.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{research-project/figures/tuoc_exp/age_distributions.png}
+  \caption{Age distribution across 10 clients.}
+  \label{fig:age_distributions}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{research-project/figures/tuoc_exp/sex_distributions.png}
+  \caption{Sex distribution across 10 clients.}
+  \label{fig:sex_distributions}
+\end{subfigure}
+\caption{Client-wise data distribution under non-IID partitioning.}
+\label{fig:client_distributions}
+\end{figure}
+
+
+\subsection{Defense Strategies}
+\subsubsection{MiMic Strategy}
+\subsubsection{Robust Aggregation for Federated Learning (RFA)}
+In Federated Learning, the most commonly used aggregation method at the server for constructing the global model is the weighted arithmetic mean aggregation. How ever, in practical deployments, this method is not robust to client dropout - a phenomenon in which certain clients fail to submit updates during a training round, or submit corrupted or noisy data due to system failures or adversarial behavior. The arithmetic mean aggregation is sensitive to outliers, meaning that even a single faulty or significantly deviating update can substantially degrade the quality of the global model. To address this issue, researchers have proposed a more robust aggregation approach by replacing the arithmetic mean with the approximate geometric median. This method seeks to find a central point that minimizes the sum of distances to all client updates, rather than computing their average. Both theoretical analyses and empirical evaluations have demonstrated that this approach not only mitigates the adverse effects of client dropout and noisy updates, but also preserves data privacy during aggregation - a critical property in Federated Learning.
+
+The robust aggregation method introduces a novel aggregation oracle based on the classical geometric median, optimized via an alternating minimization algorithm. This algorithm can be seen as a numerically stable adaptation of the classical Weiszfeld algorithm, which is widely used for computing the geometric median in high-dimensional spaces. The stability and convergence properties of this variant make it well-suited for federated learning scenarios where model updates can be noisy or adversarial.
+
+The following section presents the Robust Aggregation Althorithm with Geometric Median (GM).
+
+The geometric median of $w_1, \dots, w_m \in \mathbb{R}^d$ with weights $\alpha_1, \dots \dots \dots, \alpha_m > 0$ is the minimizer of
+
+\begin{equation}
+    g(v) := \sum_{i=1}^m \alpha_i \|v - w_i\|_2
+\end{equation}
+where $||.||_2$ is the Euclidean norm
+An approximate solution $\hat{v}$ satisfying $g(\hat{v}) - \min_v g(v) \leq \epsilon$ is denoted by:
+
+\begin{equation}
+\hat{v} = \text{GM}\big((w_i)_{i=1}^m, (\alpha_i)_{i=1}^m, \epsilon\big)
+\end{equation}
+
+When $\alpha_i = 1/m$ (uniform weights), we simply write $\text{GM}\big((w_i)_{i=1}^m, \epsilon\big)$.
+
+The following presents details about the GM algorithm. Although GM is a natural choice, its implementation in FL must be securely aggregated. The solution is to use a stabilized variant of Weiszfeld's algorithm, which the authors refer to as the \textbf{smoothed Weiszfeld algorithm}.
+
+
+\subsubsection{ReBa}
+
+\section{Initial Results}
+
+\subsection{Experimental Setup}
+
+\textbf{Impact of client dropout experiment:} We implemented a 3D-DenseNet model with a total of 1,698,933 parameters, training all parameters end-to-end. At each client, the dataset is split with a ratio of 0.6, 0.2, 0.2 for train/test/validation sets, respectively, with a batch size of 4. We use a learning rate of 0.001, along with an ExponentialLR scheduler. The loss function employed is binary cross-entropy, and the optimizer used is AdamW. Each client performs either 1 or 5 epochs per round depending on the specific configuration. The parameter aggregation algorithm used is FedAvg (using Flower Framework for simulating training process) 
+
+
+\subsection{Experiment result}
+\subsubsection{Experiment with identical distributions among clients}
+
+
+
+
+
+Below are the training results using 5 epochs per client, (total 6 clients). We combined the interleaved dropout methods described above (fixed/random) for both sending parameters from clients to the server and from the server to clients. The training was conducted over 10 rounds. Below is the summary table of the dropout configurations I used:
+    
+\begin{table}[htbp]
+\centering
+\begin{adjustbox}{width=\textwidth}
+\begin{tabular}{|c|c|c|c|c|l|}
+\hline
+\textbf{Name} & \textbf{Pattern Train} & \textbf{Pattern Eval} & \textbf{Dropout Train} & \textbf{Dropout Eval} & \textbf{Fixed Clients} \\
+\hline
+dropout\_30pct\_fixed\_train\_fixed\_eval & fixed & fixed & 0.3 & 0.3 & [0, 1, 2] \\
+\hline
+dropout\_30pct\_fixed\_train\_fixed\_eval & fixed & fixed & 0.3 & 0.3 & [0, 1, 2] \\
+\hline
+dropout\_30pct\_random\_train\_fixed\_eval & random & fixed & 0.3 & 0.3 & [0, 1, 2] \\
+\hline
+dropout\_70pct\_fixed\_train\_random\_eval & fixed & random & 0.7 & 0.7 & [0, 1, 2] \\
+\hline
+dropout\_30pct\_random\_train\_random\_eval & random & random & 0.3 & 0.3 & [] \\
+\hline
+dropout\_70pct\_random\_train\_random\_eval & random & random & 0.7 & 0.7 & [] \\
+\hline
+\end{tabular}
+\end{adjustbox}
+\caption{Dropout configurations (with identical distributions among clients) }
+\end{table}
+
+Based on Figures \ref{fig:train_loss} and \ref{fig:test_loss}, it can be observed that most of the training loss curves across the configurations decrease relatively smoothly (except for the configuration . However, in contrast, while the test loss also decreases, the curves are not smooth and exhibit significant fluctuations, with some losses increasing sharply before decreasing again. This indicates that the training and parameter update process is unstable, even though the data distribution is the same across all clients. 
+
+An interesting finding is that when the number of dropped-out clients is large (as in the configuration \texttt{dropout\_70pct\_random\_train\_random\_eval}), the loss appears to decrease more smoothly and steadily compared to other cases. Similarly, the configuration \texttt{dropout\_70pct\_random\_train\_fixed\_eval} also exhibits a much smoother loss decrease compared to the other dropout configurations.
+
+
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/train_dropped.png}
+        \caption{Number of clients not sending parameters to the server in each round.}
+        \label{fig:train_dropped}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/eval_dropped.png}
+        \caption{Number of clients not receiving parameters from the server in each round.}
+        \label{fig:eval_dropped}
+    \end{minipage}
+\end{figure}
+
+
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/train_loss.png}
+        \caption{Train Loss after 10 round.}
+        \label{fig:train_loss}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/test_loss.png}
+        \caption{Test loss after 10 round.}
+        \label{fig:test_loss}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/train_acc.png}
+        \caption{Train Accuracy after 10 round.}
+        \label{fig:train_acc}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/test_acc.png}
+        \caption{Test Accuracy after 10 round.}
+        \label{fig:test_acc}
+    \end{minipage}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/test_f1.png}
+        \caption{Test F1 after 10 round.}
+        \label{fig:test_f1}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/test_recall.png}
+        \caption{Test recall after 10 round.}
+        \label{fig:test_recall}
+    \end{minipage}
+    \hfill 
+    \begin{minipage}[b]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/trung_exp/test_precision.png}
+        \caption{Test precision after 10 round.}
+        \label{fig:test_precision}
+    \end{minipage}
+    
+\end{figure}
+
+Similar to the results in Figure \ref{fig:train_loss}, in Figure \ref{fig:train_acc}, the accuracy of the clients increases very smoothly and reaches over 95\% for most clients. However, the accuracy and other metrics during the testing phase do not increase smoothly, and in some cases, do not increase at all. Based on Figures \ref{fig:test_f1} and \ref{fig:test_precision}, the previous interesting observation is further confirmed: when the dropout rate is high (70\%), the metrics tend to increase more smoothly compared to other cases (although they still exhibit fluctuations and are not significantly higher than in other configurations).
+
+Another interesting observation is that the test recall (\ref{fig:test_recall}) remains very high and stable (around 90\%), even though other metrics are unstable and relatively low. This might suggest that the sampled data distribution at each client is skewed (i.e., the positive label is much more frequent than the negative label — see \ref{fig:same_distribution} for reference).
+
+\subsubsection{Experiment with non-identical distributions among clients}
+
+All experiments were conducted over 10 training rounds. In each round, 10 clients participated, and the data was distributed among them using the non-IID bin-based sampling strategy described previously, with an overlap ratio of 0.6. The learning rate was set to 0.001 across all configurations. Three experimental setups were considered:
+
+\begin{enumerate}
+\item \textbf{Experiment0:} All 10 clients participated in every round, and each client trained locally for 1 epoch before sending updates to the server.
+\item \textbf{Experiment1:} Each client had a 30\% chance of being randomly dropped per round. The participating clients trained for 1 epoch before aggregation.
+\item \textbf{Experiment2:} Same dropout strategy as above (30\% random dropout per round), but each client trained for 2 local epochs before aggregation.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/client_fit.png}
+        \caption{Number of clients not sending parameters to the server in each round (training phase).}
+        \label{fig:client_fit}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/client_eval.png}
+        \caption{Number of clients not sending evaluation results to the server in each round.}
+        \label{fig:client_eval}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/train_loss.png}
+        \caption{Training loss over rounds.}
+        \label{fig:train_loss}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/train_acc.png}
+        \caption{Training accuracy over rounds.}
+        \label{fig:train_acc}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/val_loss.png}
+        \caption{Validation loss over rounds.}
+        \label{fig:val_loss}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/val_acc.png}
+        \caption{Validation accuracy over rounds.}
+        \label{fig:val_acc}
+    \end{minipage}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/test_loss.png}
+        \caption{Test loss over rounds.}
+        \label{fig:test_loss}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{research-project/figures/tuoc_exp/test_acc.png}
+        \caption{Test accuracy over rounds.}
+        \label{fig:test_acc}
+    \end{minipage}
+\end{figure}
+
+
+As shown in Figures~\ref{fig:test_loss} and~\ref{fig:test_acc}, the training behavior varied significantly across these three settings due to the combination of client dropout and non-IID data distributions.
+
+In the \textbf{experiment0} configuration, the model trained stably across rounds. Both validation and test loss curves exhibited a clear downward trend with minimal fluctuations. Similarly, accuracy curves on the validation and test sets increased steadily, indicating effective convergence. The model achieved a peak test accuracy of approximately 71\%. This stability suggests that full client participation allows for reliable and consistent gradient aggregation, even in the presence of heterogeneous local data.
+
+In contrast, under the \textbf{experiment1} setup, the loss curves showed significant oscillations on both the validation and test sets. These fluctuations can be attributed to high stochastic variance: since clients are randomly excluded in each round, the aggregated gradients at the server vary greatly in direction and magnitude. Without the contribution of all clients, especially those carrying important gradient signals, the updates become noisy and erratic, hampering convergence.
+
+The issue becomes even more pronounced in the \textbf{experiment2} configuration. Despite the longer local training time, the model exhibited more unstable behavior. The underlying reason is rooted in the nature of non-IID data: as clients train for more epochs locally, their models diverge further from the global optimum, following their own biased data distributions. When these divergent models are averaged at the server, especially in the presence of dropout the resulting global model may move away from the true optimum rather than towards it. This is exacerbated by the lack of participation from certain clients in each round, leading to missing or skewed updates and amplifying the inconsistency of gradient directions. The combined effect of long local training and random dropout under non-IID conditions creates a situation where server-side aggregation suffers from both high variance and systematic drift, often referred to as the "client drift" problem.
+
+These findings clearly demonstrate the impact of client dropout in federated learning under non-identical data distributions. It is essential to design robust strategies for handling parameter updates when client dropout occurs, as well as to carefully tune related hyperparameters (e.g., local training epochs, learning rate, and dropout probability). Without appropriate adjustments, dropout can significantly hinder convergence and stability, especially when clients possess highly heterogeneous data.
+
+\section{Project Plan}
+
+\subsection{Completed Tasks}
+
+\begin{itemize}
+    \item Built and trained a model simulating federated learning for the gender classification task.
+    \item Designed multiple dropout scenarios during training and reported the results, from which we drew observations regarding the impact of the dropout phenomenon.
+\end{itemize}
+
+\subsection{Challenges}
+
+\begin{itemize}
+    \item Lack of resources to train and experiment with more scenarios.
+\end{itemize}
+
+
+\subsection{Future Work}
+
+\begin{itemize}
+    \item Experiment with additional client dropout strategies to draw more accurate and comprehensive conclusions.
+\end{itemize}
+
+
+
+
+
+
+
+\bibliographystyle{chicago}
+\bibliography{Literature}
+
+
+
+
+\end{document}
+
+
+
