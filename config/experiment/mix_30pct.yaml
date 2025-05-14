@@ -1,0 +1,9 @@
+pattern_train: "random"
+pattern_eval: "fixed"
+dropout_rate_training: 0.3
+dropout_rate_eval: 0.3
+fixed_clients: 
+  - 0
+  - 1
+  - 2
+name: "dropout_30pct_random_train_fixed_eval"

@@ -1,0 +1,6 @@
+_target_ : model.gender_module.BrainMRILightningModule
+
+net: 
+  _target_: model.component.cnn.BrainMRINet
+
+
