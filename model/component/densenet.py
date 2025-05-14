@@ -6,8 +6,6 @@ from typing import List, Tuple
 from torchsummary import summary
 
 
-
-
 class _DenseLayer(nn.Sequential):
     def __init__(self, num_input_features, growth_rate, bn_size, drop_rate):
         super().__init__()
@@ -127,8 +125,8 @@ class DenseNet(nn.Module):
         features = self.features(x)
         out = F.relu(features, inplace=True)
         out = F.adaptive_avg_pool3d(out, output_size=(1, 1, 1)).view(features.size(0), -1)
-        out = self.classifier(out)
-        return out
+        logits = self.classifier(out)
+        return out, logits
     
 
 
