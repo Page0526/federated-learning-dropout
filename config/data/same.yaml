@@ -1,5 +1,0 @@
-root_path: "${base_path}/dataset/not_skull_stripped"
-label_path: "${base_path}/dataset/label.csv"
-val_ratio: 0.2
-overlap_ratio: 0.2
-distribution: "same" 

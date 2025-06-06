@@ -1,8 +1,0 @@
-_target_: model.gender_module.DenseNetModule
-
-net: 
-  _target_: model.component.densenet.DenseNet
-
-
-
-
